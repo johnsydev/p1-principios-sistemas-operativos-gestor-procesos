@@ -10,9 +10,11 @@ public class PCB {
     // Estados del proceso posibles
     public enum ProcessState {
         NEW("NEW"), //al seleccionar el archivo
-        READY("READY"), //al cargar el programa a memoria
+        READY("READY"), //al cargar el programa a memoria (sin suspensión)
+        READY_SUSPENDED("READY_SUSPENDED"), //al suspenderlo
         RUNNING("RUNNING"), //al ejecutarlo
-        BLOCKED("BLOCKED"), //esperando IO
+        BLOCKED("BLOCKED"), //esperando I/O (sin suspensión)
+        BLOCKED_SUSPENDED("BLOCKED_SUSPENDED"), //al bloquearlo por espera de I/O y suspenderlo
         EXIT("EXIT"); //al terminar de ejecutarse
 
         private final String displayName;
@@ -24,6 +26,10 @@ public class PCB {
         @Override
         public String toString() {
             return displayName;
+        }
+
+        public boolean isSuspended() {
+            return this == READY_SUSPENDED || this == BLOCKED_SUSPENDED;
         }
     }
 
@@ -43,6 +49,10 @@ public class PCB {
     private int BX = 0;
     private int CX = 0;
     private int DX = 0;
+
+    // Otros atributos
+
+    private int priority = 1; // por defecto 1 para todos durante este proyecto
     
     // al iniciar el proceso
 
@@ -164,5 +174,13 @@ public class PCB {
 
     public void setDX(int DX) {
         this.DX = DX;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
     }
 }
