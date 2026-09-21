@@ -9,7 +9,7 @@
 
 **Estudiante:** 2024178835 - Johnsy Steven López Aguilar  
 **Curso:** Principios de Sistemas Operativos  
-**Estado del proyecto:** 1 (Completo)  
+**Estado del proyecto:** Escala de 1 a 5
 **Enlace del video:** [Ver en YouTube](https://youtu.be/xyo6f_jqHMA)
 
 ---
