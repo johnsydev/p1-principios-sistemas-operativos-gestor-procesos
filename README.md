@@ -1,5 +1,9 @@
+# Mini PC Simulator (🛠️ Proyecto en construcción)
 
-# Mini PC Simulator
+![Badge en Desarollo](https://img.shields.io/badge/STATUS-EN%20DESAROLLO-green)
+
+> [!WARNING]
+> La presente documentación no se encuentra actualizada con respecto al estado del proyecto, será actualizada a medida que avance el proyecto o cuando se finalicen sus etapas claves de desarrollo.
 
 <p align="left">
   <img src="https://res.cloudinary.com/dpuuo4mfh/image/upload/v1789428731/simulatorimgt1so2_r6cqry.png" width="1000" alt="Vista previa del simulador">
