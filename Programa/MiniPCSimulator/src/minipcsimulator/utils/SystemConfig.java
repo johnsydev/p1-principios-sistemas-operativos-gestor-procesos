@@ -9,7 +9,7 @@ public class SystemConfig {
     private static int memorySize = 256;
     private static int userMemoryStart = 64; // tamaño del kernel
     private static int diskSize = 512;
-    private static int diskFilesStart = 64; // tamaño de la memoria virtual
+    private static int diskMemoryVirtualSize = 64; // tamaño de la memoria virtual
 
     // NO EDITABLES
     //RAM
@@ -54,8 +54,8 @@ public class SystemConfig {
      * Obtiene la posición de inicio de la memoria de archivos.
      * @return La posición de inicio de la memoria de archivos.
      */
-    public static int getDiskFilesStart() {
-        return diskFilesStart;
+    public static int getDiskMemoryVirtualStart() {
+        return diskSize - diskMemoryVirtualSize;
     }
 
     /**

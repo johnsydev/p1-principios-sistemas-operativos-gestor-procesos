@@ -57,42 +57,45 @@ public class Disk {
     }
 
     /**
-     * Función para obtener todas las posiciones de memoria y sus valores, que se utiliza para mostrar en la GUI (tabla de memoria).
-     * @return Una lista de arreglos de objetos que contiene la posición de memoria, el valor original y su representación binaria.
+     * Función para obtener todas las posiciones del disco y sus valores, que se utiliza para mostrar en la GUI (tabla de disco y memoria virtual).
+     * @return Una lista con dos listas: 
+     *          - La primera contiene las posiciones del disco para programas y archivos, cada una con su valor correspondiente.
+     *          - La segunda las posiciones de la memoria virtual, cada una con su valor correspondiente.
      */
-    public List<Object[]> getAllMemoryRows() {
+    public ArrayList<List<Object[]>> getAllDiskRows() {
         List<Object[]> diskList = new ArrayList<>();
+        List<Object[]> mVirtualList = new ArrayList<>();
         int i = 0;
-        int countPauseDiskStart = -1;
         for (MemoryRegister memr : disk) {
-            if (memr == null) {
-                
-                if (i < SystemConfig.getDiskFilesStart()) {
-                    if (countPauseDiskStart == -1) {
-                        countPauseDiskStart = i;
-                    }
+            if (i >= SystemConfig.getDiskMemoryVirtualStart()) { //para que la memoria virtual no se muestre en la tabla de disco
+                if (memr == null) {
+                    mVirtualList.add(new Object[] {i, null});
+                    i++;
+                    continue;
                 }
-                else {
-                    if (countPauseDiskStart != -1) {
-                        diskList.add(new Object[] {countPauseDiskStart + " - " + (i - 1), "Memoria virtual reservada", null});
-                        countPauseDiskStart = -1;
-                    }
-                    diskList.add(new Object[] {i, null, null});
+                if (memr.instruction != null) {
+                    mVirtualList.add(new Object[] {i, memr.instruction.getOriginalInstructionText()});
+                } else {
+                    mVirtualList.add(new Object[] {i, memr.getName()});
                 }
                 i++;
-                continue;
             }
-            if (countPauseDiskStart != -1) {
-                diskList.add(new Object[] {countPauseDiskStart + "..." + (i - 1), "Memoria virtual reservada", null});
-                countPauseDiskStart = -1;
+            else {
+                if (memr == null) {
+                    diskList.add(new Object[] {i, null});
+                    i++;
+                    continue;
+                }
+                if (memr.instruction != null) {
+                    diskList.add(new Object[] {i, memr.instruction.getOriginalInstructionText()});
+                } else {
+                    diskList.add(new Object[] {i, memr.getName()});
+                }
+                i++;
             }
-            if (memr.instruction != null) {
-                diskList.add(new Object[] {i, memr.instruction.getOriginalInstructionText(), memr.instruction.getBinaryInstruction()});
-            } else {
-                diskList.add(new Object[] {i, memr.getName(), memr.getBinaryValue()});
-            }
-            i++;
         }
-        return diskList;
+        return new ArrayList<>(List.of(diskList, mVirtualList));
     }
+
+    
 }

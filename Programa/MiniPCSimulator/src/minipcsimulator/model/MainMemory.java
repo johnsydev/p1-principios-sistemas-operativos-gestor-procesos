@@ -74,22 +74,22 @@ public class MainMemory {
                 }
                 else {
                     if (countPauseKernelStart != -1) {
-                        memoryList.add(new Object[] {countPauseKernelStart + " - " + (i - 1), "Kernel reservado", null});
+                        memoryList.add(new Object[] {countPauseKernelStart + " - " + (i - 1), "Kernel reservado"});
                         countPauseKernelStart = -1;
                     }
-                    memoryList.add(new Object[] {i, null, null});
+                    memoryList.add(new Object[] {i, null});
                 }
                 i++;
                 continue;
             }
             if (countPauseKernelStart != -1) {
-                memoryList.add(new Object[] {countPauseKernelStart + "..." + (i - 1), "Kernel reservado", null});
+                memoryList.add(new Object[] {countPauseKernelStart + "..." + (i - 1), "Kernel reservado"});
                 countPauseKernelStart = -1;
             }
             if (memr.instruction != null) {
-                memoryList.add(new Object[] {i, memr.instruction.getOriginalInstructionText(), memr.instruction.getBinaryInstruction()});
+                memoryList.add(new Object[] {i, memr.instruction.getOriginalInstructionText()});
             } else {
-                memoryList.add(new Object[] {i, memr.getName(), memr.getBinaryValue()});
+                memoryList.add(new Object[] {i, memr.getName()});
             }
             i++;
         }
