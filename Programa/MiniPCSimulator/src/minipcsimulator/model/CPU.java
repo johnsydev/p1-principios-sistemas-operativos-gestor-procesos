@@ -9,25 +9,41 @@ public class CPU {
     // Codigos de operación
     public enum OpCode {
         // Instrucciones
-        LOAD(1, "INSTRUCTION"), 
-        STORE(2, "INSTRUCTION"), 
-        ADD(3, "INSTRUCTION"), 
-        SUB(4, "INSTRUCTION"), 
-        MOV(5, "INSTRUCTION"),
+        LOAD(1, "INSTRUCTION", 2), 
+        STORE(2, "INSTRUCTION", 2), 
+        MOV(3, "INSTRUCTION", 1),
+        ADD(4, "INSTRUCTION", 3), 
+        SUB(5, "INSTRUCTION", 3), 
+        INC(6, "INSTRUCTION", 1),
+        DEC(7, "INSTRUCTION", 1),
+        SWAP(8, "INSTRUCTION", 1),
+        INT_20H(9, "INSTRUCTION", 2),
+        INT_10H(10, "INSTRUCTION", 2),
+        INT_09H(11, "INSTRUCTION", 0), //peso depende
+        INT_21H(12, "INSTRUCTION", 5),
+        JMP(13, "INSTRUCTION", 2),
+        CMP(14, "INSTRUCTION", 2),
+        JE(15, "INSTRUCTION", 2),
+        JNE(16, "INSTRUCTION", 2),
+        PARAM(17, "INSTRUCTION", 3),
+        PUSH(18, "INSTRUCTION", 1),
+        POP(19, "INSTRUCTION", 1),
 
         // Registros
-        AX(5, "REGISTER"),
-        BX(6, "REGISTER"),
-        CX(7, "REGISTER"),
-        DX(8, "REGISTER");
+        AX(5, "REGISTER", 0),
+        BX(6, "REGISTER", 0),
+        CX(7, "REGISTER", 0),
+        DX(8, "REGISTER", 0);
 
         private final int id;
         private final String type;
+        private final int weight;
 
         // Constructor
-        OpCode(int id, String type) {
+        OpCode(int id, String type, int weight) {
             this.id = id;
             this.type = type;
+            this.weight = weight;
         }
 
         public String getCode() {
