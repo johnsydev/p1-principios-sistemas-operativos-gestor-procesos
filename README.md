@@ -24,7 +24,7 @@ Mini PC Simulator es un simulador básico de un sistema operativo, desarrollado 
 
 Esta tarea permite observar el proceso que ocurre desde que un programa es cargado hasta que sus instrucciones son ejecutadas por el procesador.
 
-El simulador trabaja con programas escritos en un tipo de ensamblador mediante archivos `.asm`. Estos programas son analizados y validados antes de ser cargados en memoria. Posteriormente, las instrucciones válidas son traducidas a su representación binaria y almacenadas en la memoria RAM simulada. De momento, solo se puede cargar un programa a la vez.
+El simulador trabaja con programas escritos en un tipo de ensamblador mediante archivos `.asm`. Estos programas son analizados y validados antes de ser cargados en memoria. Posteriormente, las instrucciones válidas son traducidas a su representación interna y almacenadas en la memoria RAM simulada. De momento, solo se puede cargar un programa a la vez.
 
 Una vez cargado el programa, el usuario puede ejecutar las instrucciones utilizando dos modalidades:
 
@@ -47,8 +47,7 @@ En particular, el simulador busca representar:
 - El funcionamiento de registros del procesador.
 - La administración básica de un proceso mediante un PCB (Process Control Block).
 - La función del Kernel como controlador del sistema.
-- La carga de programas desde archivos externos.
-- La representación de instrucciones mediante valores binarios.
+- La carga de programas desde archivos externos.arios.
 - El manejo de memoria disponible para los programas.
 
 Esta tarea no pretende ser una implementación de un sistema operativo real, sino una herramienta que simula el comportamiento de un sistema operativo y permite comprender conceptos fundamentales relacionados con el curso de Principios de Sistemas Operativos.
@@ -194,7 +193,7 @@ Al seleccionar el archivo ocurre una serie de procesos:
 4. Se valida la sintaxis de las instrucciones (AsmParser).
 5. Se verifican los rangos permitidos de números y se descartan las instrucciones no validas (AsmParser).
 6. Se crea el proceso en estado `NEW` (MiniPCController).
-7. Las instrucciones válidas se convierten a su representación binaria y se almacena en disco en lista de instrucciones (Loader).
+7. Las instrucciones válidas se convierten a su representación interna y se almacena en disco en lista de instrucciones (Loader).
 8. Se actualiza la tabla de instrucciones en la GUI (VentanaPrincipal).
 
 ---
@@ -282,7 +281,6 @@ t1-principios-sistemas-operativos-mini-pc/
         │       │   └── Process.java
         │       ├── services/
         │       │   ├── AsmParser.java
-        │       │   ├── BinaryUtils.java
         │       │   └── FileManager.java
         │       └── utils/
         │           └── SystemConfig.java
@@ -304,7 +302,6 @@ t1-principios-sistemas-operativos-mini-pc/
 | `Loader.java`           | Modelo    | Se encarga de cargar el programa y escribir sus instrucciones en las posiciones correspondientes de la memoria.                                           |
 | `Dispatcher.java`       | Modelo    | Modela las transiciones y cambios de estado relacionados con la ejecución del proceso.                                                                    |
 | `AsmParser.java`        | Servicio    | Analiza los archivos `.asm`, valida la sintaxis de las instrucciones, verifica rangos y descarta líneas vacías.                                           |
-| `BinaryUtils.java`      | Servicio    | Proporciona operaciones relacionadas con la conversión entre valores numéricos y representaciones binarias de 8 bits, así como la tabla de valores de binarios de cada instrucción y registros                                     |
 | `FileManager.java`      | Servicio    | Gestiona la selección y lectura de archivos `.asm` mediante el explorador de archivos.                                                                    |
 | `SystemConfig.java`     | Utilidad    | Contiene las configuraciones generales del sistema, como el tamaño de la RAM y el espacio reservado para el Kernel, entre otras.                                     |
 
@@ -319,7 +316,7 @@ El proceso de carga comienza cuando el usuario selecciona un archivo `.asm`.
 
 El `FileManager` se encarga de obtener el archivo seleccionado y proporcionar su contenido al sistema. Posteriormente, `AsmParser` analiza cada línea y determina si cumple con las reglas de sintaxis establecidas.
 
-Las instrucciones que superan la validación son procesadas para obtener su representación binaria. Esta representación es utilizada por el `Loader`, que cuando se presiona en `Cargar programa` se encarga de escribir las instrucciones en las posiciones disponibles de la memoria RAM.
+Las instrucciones que superan la validación son procesadas para obtener su representación interna. Esta representación es utilizada por el `Loader`, que cuando se presiona en `Cargar programa` se encarga de escribir las instrucciones en las posiciones disponibles de la memoria RAM.
 
 De esta manera, el programa deja de existir únicamente como un archivo externo y pasa a estar representado dentro de la memoria de la Mini PC.
 
@@ -353,7 +350,7 @@ La memoria simulada está organizada en celdas individuales representadas median
 
 Cada posición puede contener información asociada con una instrucción o un valor numérico.
 
-La interfaz muestra información de la memoria para facilitar la observación de lo que está ocurriendo internamente. También se incluye una representación binaria de los valores almacenados para mostrar de forma más directa cómo la información es manejada por la máquina.
+La interfaz muestra información de la memoria para facilitar la observación de lo que está ocurriendo internamente.
 
 La memoria se divide conceptualmente entre:
 
@@ -376,7 +373,7 @@ El procesador simulado cuenta con los siguientes registros principales:
 | `DX`     | Registro general utilizado durante las operaciones del programa.                                          |
 | `AC`     | Acumulador utilizado para almacenar resultados y valores temporales.                                      |
 | `PC`     | Program Counter. Indica la posición de memoria asociada con la siguiente instrucción que debe procesarse. |
-| `IR`     | Instruction Register. Contiene la representación binaria de la instrucción en ejecución.                   |
+| `IR`     | Instruction Register. Contiene la instrucción en ejecución.                   |
 | `PCB`    | Contiene la información administrativa correspondiente al proceso en ejecución.                           |
 
 La interfaz gráfica muestra estos elementos para que el usuario pueda observar cómo cambian durante la ejecución.
@@ -418,16 +415,6 @@ Una línea no se considera una instrucción válida simplemente por existir dent
 Esto evita que contenido vacío o instrucciones incorrectas sean trasladados a la memoria como parte del programa.
 
 Al descartar las líneas vacías se evita el consumo de memoria innecesario, optimizando lo dicho de que "cada línea del programa es un espacio en la memoria", haciendo que únicamente las líneas con instrucciones sean almacenadas en memoria. Si un archivo tiene 200 líneas pero 50 de ellas están vacías, el simulador solo ocupará 150 posiciones de memoria.
-
----
-
-# Representación binaria
-
-El simulador trabaja con valores de **4 bits** para el tipo de instrucción,**4 bits** para los registros y **8 bits** para los valores numéricos (con signo).
-
-`BinaryUtils` centraliza las operaciones necesarias para realizar conversiones entre valores numéricos y sus representaciones binarias.
-
-Esta característica permite que la interfaz no solamente muestre el valor que se encuentra almacenado en memoria, sino también su representación binaria, acercando la visualización del simulador al funcionamiento de una computadora a nivel de máquina.
 
 ---
 

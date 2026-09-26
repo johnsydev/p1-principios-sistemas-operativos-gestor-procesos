@@ -21,9 +21,6 @@ public class SystemConfig {
     public static final int USER_MEMORY_START_MIN = 16; // lo más mínimo
     
     //Para instrucciones y registros
-    public static final int REGISTER_BIT_SIZE = 4; // MOV, ADD, ...
-    public static final int INSTRUCTION_BIT_SIZE = 4; // AX, BX, ...
-    public static final int REGISTER_VALUE_SIZE = 8; // números
     public static final int REGISTERS_COUNT = 4;
 
     /**

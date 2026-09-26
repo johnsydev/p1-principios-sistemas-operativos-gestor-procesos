@@ -1,13 +1,57 @@
 package minipcsimulator.model;
 
-import minipcsimulator.services.BinaryUtils;
-import minipcsimulator.services.BinaryUtils.BinaryCodes;
-
 /**
  * Clase CPU que se encarga de ejecutar las instrucciones de un proceso.
  * @author johnsydev
  */
 public class CPU {
+
+    // Codigos de operación
+    public enum OpCode {
+        // Instrucciones
+        LOAD(1, "INSTRUCTION"), 
+        STORE(2, "INSTRUCTION"), 
+        ADD(3, "INSTRUCTION"), 
+        SUB(4, "INSTRUCTION"), 
+        MOV(5, "INSTRUCTION"),
+
+        // Registros
+        AX(5, "REGISTER"),
+        BX(6, "REGISTER"),
+        CX(7, "REGISTER"),
+        DX(8, "REGISTER");
+
+        private final int id;
+        private final String type;
+
+        // Constructor
+        OpCode(int id, String type) {
+            this.id = id;
+            this.type = type;
+        }
+
+        public String getCode() {
+            return this.name();
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        /**
+         * Obtiene un OpCode por su código.
+         * @param code El código del OpCode a buscar.
+         * @return El OpCode correspondiente al código, o null si no se encuentra.
+         */
+        public static OpCode getByCode(String code) {
+            for (OpCode op : values()) {
+                if (op.getCode().equals(code.trim().toUpperCase())) {
+                    return op;
+                }
+            }
+            return null;
+        }
+    }
 
     private MainMemory memory;
     private PCB pcb;
@@ -63,18 +107,23 @@ public class CPU {
 
     /**
      * Ejecuta la instrucción actual del proceso que está actualmente en ejecución en el CPU.
-     * Realiza el decode de binario a datos legibles y ejecuta la operación correspondiente según el opcode y los registros involucrados.
+     * Realiza el decode de las instrucciones y ejecuta la operación correspondiente según el opcode y los registros involucrados.
      */
     public void execute() {
-        // se obtienen los binarios
-        String binary_opcode = IR.getInstructionType();
-        String binary_register = IR.getRegister();
-        String binary_value = IR.getValue();
+        // se obtienen los datos de la instrucción actual
+        OpCode opcode = OpCode.getByCode(IR.getInstructionType());
+        OpCode register = OpCode.getByCode(IR.getRegister());
+        String value = IR.getValue();
 
-        // se convierten a datos legibles
-        BinaryCodes opcode = BinaryCodes.getByBinaryCode(binary_opcode, "INSTRUCTION");
-        BinaryCodes register = BinaryCodes.getByBinaryCode(binary_register, "REGISTER");
-        int value = BinaryUtils.binaryToNumber(binary_value);
+        int intValue = 0;
+        if (value != null && !value.isEmpty()) {
+            try {
+                intValue = Integer.parseInt(value);
+            } catch (NumberFormatException e) {
+                //despues ver
+            }
+        }
+
 
         if (opcode == null || register == null) {
             System.out.println("Error: Instrucción o registro no reconocido.");
@@ -95,7 +144,7 @@ public class CPU {
                 executeSUB(register);
                 break;
             case MOV:
-                executeMOV(register, value);
+                executeMOV(register, intValue);
                 break;
 
             default:
@@ -110,7 +159,7 @@ public class CPU {
      * Ejemplo: LOAD AX cargará el valor del registro AX en el AC.
      * @param register El registro desde el cual se cargará el valor al AC.
      */
-    public void executeLOAD(BinaryCodes register) {
+    public void executeLOAD(OpCode register) {
         switch (register) {
             case AX:
                 AC = AX;
@@ -134,7 +183,7 @@ public class CPU {
      * Ejemplo: STORE AX guardará el valor del AC en el registro AX.
      * @param register El registro en el cual se guardará el valor del AC.
      */
-    public void executeSTORE(BinaryCodes register) {
+    public void executeSTORE(OpCode register) {
         switch (register) {
             case AX:
                 AX = AC;
@@ -158,7 +207,7 @@ public class CPU {
      * Ejemplo: ADD AX sumará el valor del registro AX al AC.
      * @param register El registro desde el cual se sumarán los valores al AC.
      */
-    public void executeADD(BinaryCodes register) {
+    public void executeADD(OpCode register) {
         switch (register) {
             case AX:
                 AC += AX;
@@ -182,7 +231,7 @@ public class CPU {
      * Ejemplo: SUB AX restará el valor del registro AX al AC.
      * @param register El registro desde el cual se restarán los valores al AC.
      */
-    public void executeSUB(BinaryCodes register) {
+    public void executeSUB(OpCode register) {
         switch (register) {
             case AX:
                 AC -= AX;
@@ -206,7 +255,7 @@ public class CPU {
      * @param register El registro en el cual se moverá el valor.
      * @param value El valor a establecer en el registro (mover).
      */
-    public void executeMOV(BinaryCodes register, int value) {
+    public void executeMOV(OpCode register, int value) {
         switch (register) {
             case AX:
                 AX = value;
@@ -241,7 +290,7 @@ public class CPU {
     }
 
     public String getIR() {
-        return IR.getBinaryInstruction();
+        return IR.getOriginalInstructionText();
     }
 
     public int getAC() {

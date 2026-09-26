@@ -21,7 +21,6 @@ import minipcsimulator.model.Process;
 import minipcsimulator.services.AsmParser;
 import minipcsimulator.services.FileManager;
 import minipcsimulator.utils.SystemConfig;
-import minipcsimulator.services.BinaryUtils;
 
 /**
  * Clase MiniPCController que actúa como Kernel del sistema simulado.
@@ -168,7 +167,7 @@ public class MiniPCController {
         }
 
         this.process = new Process(assignedId, SystemConfig.getUserMemoryStart());
-        List<Object[]> loadedProgramInstructions = Loader.loadProgram(lines, asmArray, this.process);
+        Loader.loadProgram(lines, asmArray, this.process); // sin ponerlo en tabla
 
         this.process.getPCB().setState(PCB.ProcessState.NEW);
         vista.setEstadoBCP("NEW");
@@ -178,7 +177,6 @@ public class MiniPCController {
         ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
         vista.actualizarTablaDisco(diskLists.get(0));
         vista.actualizarTablaMemoriaVirtual(diskLists.get(1));
-        //vista.actualizarTablaInstrucciones(loadedProgramInstructions);
     }
 
     /**

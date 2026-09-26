@@ -1,7 +1,5 @@
 package minipcsimulator.model;
 
-import minipcsimulator.services.BinaryUtils;
-
 /**
  * Clase que representa un registro de memoria, que puede ser un registro de datos o una instrucción.
  * Fue creada pues almacenar solo instrucciones limitaba la capacidad de guardar datos en memoria RAM con otras finalidades.
@@ -9,19 +7,17 @@ import minipcsimulator.services.BinaryUtils;
 public class MemoryRegister {
     public String name;
     public int value;
-    public String binaryValue;
     public Instruction instruction;
 
     /**
      * Constructor manual de la clase MemoryRegister para registros de datos.
-     * Convierte el valor entero a binario y lo almacena junto con el nombre del registro.
+     * Almacena el valor entero junto con el nombre del registro.
      * @param name El nombre del registro de memoria.
      * @param value El valor entero del registro de memoria.
      */
     public MemoryRegister(String name, int value) {
         this.name = name;
         this.value = value;
-        this.binaryValue = BinaryUtils.numberToBinary(value);
     }
 
     /**
@@ -30,14 +26,6 @@ public class MemoryRegister {
      */
     public MemoryRegister(Instruction instruction) {
         this.instruction = instruction;
-    }
-
-    /**
-     * Obtiene el valor binario del registro de memoria.
-     * @return El valor binario del registro de memoria.
-     */
-    public String getBinaryValue() {
-        return this.binaryValue;
     }
 
     /**

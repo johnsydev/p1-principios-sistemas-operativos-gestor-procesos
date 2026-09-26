@@ -1,12 +1,10 @@
 package minipcsimulator.model;
 
 import java.util.ArrayList;
-import java.util.List;
-import minipcsimulator.services.BinaryUtils;
 import minipcsimulator.utils.SystemConfig;
 
 /**
- * Clase Loader que se encarga de cargar programas en memoria y convertir instrucciones a binario.
+ * Clase Loader que se encarga de cargar programas en memoria y convertir instrucciones a su representación interna.
  * @author johnsydev
  */
 public class Loader {
@@ -16,27 +14,23 @@ public class Loader {
      * @param lines Lista de líneas del archivo .asm originales.
      * @param asmArray Matriz de instrucciones del archivo .asm tratadas por el parser (divididas en partes separadas por comas).
      * @param process El proceso al que se le asignarán las instrucciones.
-     * @return Una lista de arreglos de objetos que contiene la instrucción original y su representación binaria (para usar en Tabla de Instrucciones en la GUI).
      */
-    public static List<Object[]> loadProgram(ArrayList<String> lines, ArrayList<ArrayList<String>> asmArray, Process process) {
+    public static void loadProgram(ArrayList<String> lines, ArrayList<ArrayList<String>> asmArray, Process process) {
         int i = 0;
-        List<Object[]> loadedProgramInstructions = new ArrayList<>();
         ArrayList<Instruction> instructions = new ArrayList<>();
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
 
-            Instruction instruction = new Instruction(line, asmArray.get(i), BinaryUtils.translateToBinary(asmArray.get(i)));
+            Instruction instruction = new Instruction(line, asmArray.get(i));
             instructions.add(instruction);
             instruction.printConversion();
 
             // Para GUI
-            loadedProgramInstructions.add(new Object[] {instruction.getOriginalInstructionText(), instruction.getBinaryInstruction()});
             i++;
         }
 
         // Guarda las instrucciones en el proceso para usarlas después al cargar en memoria
         process.setInstructions(instructions);
-        return loadedProgramInstructions;
     }
 
     /**

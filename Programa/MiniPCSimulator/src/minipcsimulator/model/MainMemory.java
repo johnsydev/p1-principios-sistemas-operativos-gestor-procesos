@@ -58,7 +58,7 @@ public class MainMemory {
 
     /**
      * Función para obtener todas las posiciones de memoria y sus valores, que se utiliza para mostrar en la GUI (tabla de memoria).
-     * @return Una lista de arreglos de objetos que contiene la posición de memoria, el valor original y su representación binaria.
+     * @return Una lista de arreglos de objetos que contiene la posición de memoria y el valor original.
      */
     public List<Object[]> getAllMemoryRows() {
         List<Object[]> memoryList = new ArrayList<>();
