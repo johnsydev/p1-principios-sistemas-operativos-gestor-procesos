@@ -34,10 +34,16 @@ public class VentanaPrincipal extends JFrame {
     private JButton btnSeleccionar, btnCargar, btnPasoAPaso, btnEjecutar, btnLimpiar;
     private JButton btnAbrirConfig;
     private JSpinner spTamanoMemoria, spLimiteKernel, spTamanoDisco, spTamanoVirtual;
-    private JTable tablaInstrucciones;
-    private DefaultTableModel modeloTablaInstrucciones;
-    private JTable tablaMemoria;
-    private DefaultTableModel modeloTablaMemoria;
+    
+    // Tablas
+    private JTable tablaMemoria, tablaDisco, tablaVirtual, tablaTrabajos;
+    private DefaultTableModel modeloTablaMemoria, modeloTablaDisco, modeloTablaVirtual, modeloTablaTrabajos;
+    
+    // Consola
+    private JTextArea txtPantalla;
+    private JTextField txtTeclado;
+    
+    // Registros CPU y BCP
     private JTextField txtPC, txtIR, txtAC, txtAX, txtBX, txtCX, txtDX;
     private JLabel lblEstadoBCP, lblProcessID;
 
@@ -52,8 +58,8 @@ public class VentanaPrincipal extends JFrame {
     private void initComponents() {
         setTitle("Mini PC Simulator");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1300, 720);
-        setMinimumSize(new Dimension(1100, 650));
+        setSize(1400, 780);
+        setMinimumSize(new Dimension(1200, 700));
         setLocationRelativeTo(null);
 
         getContentPane().setBackground(BG_MAIN);
@@ -119,13 +125,13 @@ public class VentanaPrincipal extends JFrame {
         panelPrincipal.setLayout(new BoxLayout(panelPrincipal, BoxLayout.Y_AXIS));
         panelPrincipal.setBackground(BG_PANEL);
         panelPrincipal.setBorder(new EmptyBorder(16, 14, 16, 14));
-        panelPrincipal.setPreferredSize(new Dimension(220, 0));
+        panelPrincipal.setPreferredSize(new Dimension(200, 0));
 
         JLabel titulo = crearTituloCentrado("CONTROLES");
         panelPrincipal.add(titulo);
         panelPrincipal.add(Box.createVerticalStrut(14));
 
-        btnSeleccionar = crearBoton("Seleccionar archivo .asm", BLUE);
+        btnSeleccionar = crearBoton("Seleccionar .asm", BLUE);
         btnCargar = crearBoton("Cargar programa", ORANGE);
         btnPasoAPaso = crearBoton("Paso a paso", CYAN);
         btnEjecutar = crearBoton("Ejecutar todo", GREEN);
@@ -229,7 +235,7 @@ public class VentanaPrincipal extends JFrame {
         panelBotones.setOpaque(false);
 
         JButton btnCancelar = new JButton("Cancelar");
-        estilizarBotonSecundario(btnCancelar);
+        estilitarBotonSecundario(btnCancelar);
         btnCancelar.addActionListener(e -> dialogConfig.dispose());
 
         JButton btnGuardar = new JButton("Guardar");
@@ -262,74 +268,156 @@ public class VentanaPrincipal extends JFrame {
         dialogConfig.setVisible(true);
     }
 
-    // Crea el panel central con las tablas de programa y memoria
+    // Crea el panel central con memorias y consola
     private JPanel crearPanelMemoria() {
-        JPanel panel = new JPanel(new GridLayout(1, 2, 12, 0));
-        panel.setBackground(BG_MAIN);
+        JPanel panelCentral = new JPanel(new GridBagLayout());
+        panelCentral.setBackground(BG_MAIN);
 
-        JPanel cardPrograma = crearCard();
-        cardPrograma.setLayout(new BorderLayout(0, 12));
+        String[] columnas = {"Posición", "Valor"};
 
-        JPanel encabezadoPrograma = crearEncabezadoSeccion("PROGRAMA CARGADO", "ASM / BINARIO");
-        cardPrograma.add(encabezadoPrograma, BorderLayout.NORTH);
-
-        String[] colsInst = {"Instrucción ASM", "Código Binario"};
-        modeloTablaInstrucciones = new DefaultTableModel(colsInst, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        tablaInstrucciones = crearTabla(modeloTablaInstrucciones);
-
-        JScrollPane scrollInstrucciones = new JScrollPane(tablaInstrucciones);
-        scrollInstrucciones.setBorder(BorderFactory.createEmptyBorder());
-        cardPrograma.add(scrollInstrucciones, BorderLayout.CENTER);
-
+        // 1. Memoria Principal (RAM)
         JPanel cardRAM = crearCard();
-        cardRAM.setLayout(new BorderLayout(0, 12));
+        cardRAM.setLayout(new BorderLayout(0, 10));
+        cardRAM.add(crearEncabezadoSeccion("MEMORIA RAM", ""), BorderLayout.NORTH);
 
-        JPanel encabezadoRAM = crearEncabezadoSeccion("MEMORIA PRINCIPAL", "RAM");
-        cardRAM.add(encabezadoRAM, BorderLayout.NORTH);
-
-        String[] colsMem = {"Posición", "Instrucción", "Valor en Memoria"};
-        modeloTablaMemoria = new DefaultTableModel(colsMem, 0) {
+        modeloTablaMemoria = new DefaultTableModel(columnas, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            public boolean isCellEditable(int r, int c) { return false; }
         };
         tablaMemoria = crearTabla(modeloTablaMemoria);
+        JScrollPane scrollRAM = new JScrollPane(tablaMemoria);
+        scrollRAM.setBorder(BorderFactory.createEmptyBorder());
+        cardRAM.add(scrollRAM, BorderLayout.CENTER);
 
-        JScrollPane scrollMemoria = new JScrollPane(tablaMemoria);
-        scrollMemoria.setBorder(BorderFactory.createEmptyBorder());
-        cardRAM.add(scrollMemoria, BorderLayout.CENTER);
+        // 2. Almacenamiento Secundario (Disco y Memoria Virtual anidados)
+        JPanel panelSecundarioArriba = new JPanel(new GridLayout(1, 2, 8, 0));
+        panelSecundarioArriba.setOpaque(false);
 
-        panel.add(cardPrograma);
-        panel.add(cardRAM);
+        // Subpanel Disco para Archivos
+        JPanel cardDisco = crearCard();
+        cardDisco.setLayout(new BorderLayout(0, 10));
+        cardDisco.add(crearEncabezadoSeccion("DISCO", ""), BorderLayout.NORTH);
 
-        return panel;
+        modeloTablaDisco = new DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tablaDisco = crearTabla(modeloTablaDisco);
+        JScrollPane scrollDisco = new JScrollPane(tablaDisco);
+        scrollDisco.setBorder(BorderFactory.createEmptyBorder());
+        cardDisco.add(scrollDisco, BorderLayout.CENTER);
+
+        // Subpanel Memoria Virtual
+        JPanel cardVirtual = crearCard();
+        cardVirtual.setLayout(new BorderLayout(0, 10));
+        cardVirtual.add(crearEncabezadoSeccion("MEMORIA VIRTUAL", ""), BorderLayout.NORTH);
+
+        modeloTablaVirtual = new DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tablaVirtual = crearTabla(modeloTablaVirtual);
+        JScrollPane scrollVirtual = new JScrollPane(tablaVirtual);
+        scrollVirtual.setBorder(BorderFactory.createEmptyBorder());
+        cardVirtual.add(scrollVirtual, BorderLayout.CENTER);
+
+        panelSecundarioArriba.add(cardDisco);
+        panelSecundarioArriba.add(cardVirtual);
+
+        // Subpanel Consola (Abajo de Disco y Memoria Virtual)
+        JPanel cardConsola = crearCard();
+        cardConsola.setLayout(new BorderLayout(0, 8));
+        cardConsola.add(crearEncabezadoSeccion("CONSOLA", ""), BorderLayout.NORTH);
+
+        txtPantalla = new JTextArea();
+        txtPantalla.setEditable(false);
+        txtPantalla.setBackground(BG_INPUT);
+        txtPantalla.setForeground(new Color(78, 201, 176));
+        txtPantalla.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        txtPantalla.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+
+        JScrollPane scrollPantalla = new JScrollPane(txtPantalla);
+        scrollPantalla.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+
+        txtTeclado = new JTextField();
+        txtTeclado.setBackground(BG_INPUT);
+        txtTeclado.setForeground(TEXT);
+        txtTeclado.setCaretColor(TEXT);
+        txtTeclado.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        txtTeclado.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER, 1),
+                BorderFactory.createEmptyBorder(4, 6, 4, 6)
+        ));
+
+        JPanel panelTeclado = new JPanel(new BorderLayout(6, 0));
+        panelTeclado.setOpaque(false);
+        JLabel lblINT09 = crearLabel(">");
+        panelTeclado.add(lblINT09, BorderLayout.WEST);
+        panelTeclado.add(txtTeclado, BorderLayout.CENTER);
+
+        cardConsola.add(scrollPantalla, BorderLayout.CENTER);
+        cardConsola.add(panelTeclado, BorderLayout.SOUTH);
+
+        // Lado derecho central con altura de 70% Tablas y 30% Consola
+        JPanel panelDerechoCentral = new JPanel(new GridBagLayout());
+        panelDerechoCentral.setOpaque(false);
+
+        GridBagConstraints gbcDerecho = new GridBagConstraints();
+        gbcDerecho.fill = GridBagConstraints.BOTH;
+        gbcDerecho.gridx = 0;
+
+        // Disco y Memoria Virtual
+        gbcDerecho.gridy = 0;
+        gbcDerecho.weightx = 1.0;
+        gbcDerecho.weighty = 0.70;
+        gbcDerecho.insets = new Insets(0, 0, 6, 0);
+        panelDerechoCentral.add(panelSecundarioArriba, gbcDerecho);
+
+        // Consola
+        gbcDerecho.gridy = 1;
+        gbcDerecho.weightx = 1.0;
+        gbcDerecho.weighty = 0.30;
+        gbcDerecho.insets = new Insets(6, 0, 0, 0);
+        panelDerechoCentral.add(cardConsola, gbcDerecho);
+
+        // Layout general del panel central con 45% RAM, 55% almacenamiento secundario y consola
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.gridy = 0;
+        gbc.weighty = 1.0;
+
+        gbc.gridx = 0;
+        gbc.weightx = 0.45;
+        gbc.insets = new Insets(0, 0, 0, 6);
+        panelCentral.add(cardRAM, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.55;
+        gbc.insets = new Insets(0, 6, 0, 0);
+        panelCentral.add(panelDerechoCentral, gbc);
+
+        return panelCentral;
     }
 
-    // Crea el panel derecho para BCP y registros del CPU
+    // Crea el panel derecho para BCP, registros del CPU y Lista de Trabajos
     private JPanel crearPanelBCP() {
         JPanel panelPrincipal = new JPanel();
         panelPrincipal.setLayout(new BoxLayout(panelPrincipal, BoxLayout.Y_AXIS));
         panelPrincipal.setBackground(BG_PANEL);
         panelPrincipal.setBorder(new EmptyBorder(16, 14, 16, 14));
-        panelPrincipal.setPreferredSize(new Dimension(330, 0));
+        panelPrincipal.setPreferredSize(new Dimension(320, 0));
 
-        JLabel titulo = crearTituloCentrado("PROCESO");
+        JLabel titulo = crearTituloCentrado("PROCESO EN EJECUCIÓN");
         panelPrincipal.add(titulo);
-        panelPrincipal.add(Box.createVerticalStrut(14));
+        panelPrincipal.add(Box.createVerticalStrut(10));
 
         JPanel cardProceso = crearCard();
         cardProceso.setLayout(new BorderLayout(8, 8));
-        cardProceso.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        cardProceso.setMaximumSize(new Dimension(Integer.MAX_VALUE, 75));
 
         lblProcessID = new JLabel("Sin proceso cargado");
         lblProcessID.setForeground(TEXT);
-        lblProcessID.setFont(new Font("SansSerif", Font.BOLD, 17));
+        lblProcessID.setFont(new Font("SansSerif", Font.BOLD, 15));
 
         lblEstadoBCP = new JLabel("ESTADO: ESPERANDO ARCHIVO");
         lblEstadoBCP.setForeground(ORANGE);
@@ -339,16 +427,16 @@ public class VentanaPrincipal extends JFrame {
         cardProceso.add(lblEstadoBCP, BorderLayout.SOUTH);
 
         panelPrincipal.add(cardProceso);
-        panelPrincipal.add(Box.createVerticalStrut(18));
+        panelPrincipal.add(Box.createVerticalStrut(12));
 
         JLabel tituloCPU = crearTituloCentrado("REGISTROS CPU");
         panelPrincipal.add(tituloCPU);
-        panelPrincipal.add(Box.createVerticalStrut(12));
+        panelPrincipal.add(Box.createVerticalStrut(8));
 
         // Panel de registros con GridLayout (3 filas x 2 columnas)
-        JPanel registros = new JPanel(new GridLayout(3, 2, 8, 8));
+        JPanel registros = new JPanel(new GridLayout(3, 2, 6, 6));
         registros.setOpaque(false);
-        registros.setMaximumSize(new Dimension(Integer.MAX_VALUE, 220));
+        registros.setMaximumSize(new Dimension(Integer.MAX_VALUE, 180));
 
         txtPC = crearCampoRegistro();
         txtAC = crearCampoRegistro();
@@ -367,11 +455,33 @@ public class VentanaPrincipal extends JFrame {
         // Registro IR de ancho completo
         txtIR = crearCampoRegistro();
         JPanel cardIR = crearRegistroCard("IR (Instruction Register)", txtIR);
-        cardIR.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+        cardIR.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
 
         panelPrincipal.add(registros);
-        panelPrincipal.add(Box.createVerticalStrut(8));
+        panelPrincipal.add(Box.createVerticalStrut(6));
         panelPrincipal.add(cardIR);
+        panelPrincipal.add(Box.createVerticalStrut(14));
+
+        // Panel de Lista de Trabajos debajo del BCP/CPU
+        JLabel tituloTrabajos = crearTituloCentrado("LISTA DE TRABAJOS");
+        panelPrincipal.add(tituloTrabajos);
+        panelPrincipal.add(Box.createVerticalStrut(8));
+
+        JPanel cardTrabajos = crearCard();
+        cardTrabajos.setLayout(new BorderLayout(0, 8));
+
+        String[] colsTrabajos = {"PID", "Archivo", "Estado"};
+        modeloTablaTrabajos = new DefaultTableModel(colsTrabajos, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tablaTrabajos = crearTabla(modeloTablaTrabajos);
+
+        JScrollPane scrollTrabajos = new JScrollPane(tablaTrabajos);
+        scrollTrabajos.setBorder(BorderFactory.createEmptyBorder());
+
+        cardTrabajos.add(scrollTrabajos, BorderLayout.CENTER);
+        panelPrincipal.add(cardTrabajos);
 
         return panelPrincipal;
     }
@@ -383,7 +493,7 @@ public class VentanaPrincipal extends JFrame {
         card.setBorder(
                 BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(BORDER, 1),
-                        new EmptyBorder(14, 14, 14, 14)
+                        new EmptyBorder(10, 10, 10, 10)
                 )
         );
         return card;
@@ -396,11 +506,11 @@ public class VentanaPrincipal extends JFrame {
 
         JLabel lblTitulo = new JLabel(titulo);
         lblTitulo.setForeground(TEXT);
-        lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 13));
+        lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 12));
 
         JLabel lblDescripcion = new JLabel(descripcion);
         lblDescripcion.setForeground(TEXT_SECONDARY);
-        lblDescripcion.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        lblDescripcion.setFont(new Font("SansSerif", Font.PLAIN, 10));
 
         panel.add(lblTitulo, BorderLayout.WEST);
         panel.add(lblDescripcion, BorderLayout.EAST);
@@ -411,7 +521,7 @@ public class VentanaPrincipal extends JFrame {
     // Crea un botón principal estilizado con colores optimizados
     private JButton crearBoton(String texto, Color color) {
         JButton boton = new JButton(texto);
-        boton.setPreferredSize(new Dimension(190, 38));
+        boton.setPreferredSize(new Dimension(170, 38));
         boton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         boton.setAlignmentX(Component.CENTER_ALIGNMENT);
         boton.setForeground(Color.WHITE);
@@ -430,7 +540,7 @@ public class VentanaPrincipal extends JFrame {
     }
 
     // Estiliza un botón secundario
-    private void estilizarBotonSecundario(JButton boton) {
+    private void estilitarBotonSecundario(JButton boton) {
         boton.setPreferredSize(new Dimension(90, 32));
         boton.setFocusPainted(false);
 
@@ -457,7 +567,7 @@ public class VentanaPrincipal extends JFrame {
     // Configura y crea una tabla estándar con filas alternas
     private JTable crearTabla(DefaultTableModel modelo) {
         JTable tabla = new JTable(modelo);
-        tabla.setRowHeight(30);
+        tabla.setRowHeight(28);
         tabla.setShowGrid(false);
         tabla.setIntercellSpacing(new Dimension(0, 0));
         tabla.setBackground(BG_CARD);
@@ -466,7 +576,7 @@ public class VentanaPrincipal extends JFrame {
         tabla.setSelectionForeground(Color.WHITE);
         tabla.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
-        tabla.getTableHeader().setPreferredSize(new Dimension(0, 34));
+        tabla.getTableHeader().setPreferredSize(new Dimension(0, 30));
         tabla.getTableHeader().setBackground(new Color(37, 42, 50));
         tabla.getTableHeader().setForeground(TEXT_SECONDARY);
         tabla.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 11));
@@ -487,7 +597,7 @@ public class VentanaPrincipal extends JFrame {
                     c.setForeground(TEXT);
                 }
 
-                setBorder(new EmptyBorder(0, 10, 0, 10));
+                setBorder(new EmptyBorder(0, 8, 0, 8));
                 return c;
             }
         };
@@ -504,8 +614,8 @@ public class VentanaPrincipal extends JFrame {
         JTextField tf = new JTextField("0");
         tf.setEditable(false);
         tf.setHorizontalAlignment(JTextField.CENTER);
-        tf.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        tf.setFont(new Font("Monospaced", Font.BOLD, 14));
+        tf.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+        tf.setFont(new Font("Monospaced", Font.BOLD, 13));
 
         tf.putClientProperty(
                 FlatClientProperties.STYLE,
@@ -519,12 +629,12 @@ public class VentanaPrincipal extends JFrame {
 
     // Crea el contenedor visual para un registro de CPU
     private JPanel crearRegistroCard(String nombre, JTextField campo) {
-        JPanel panel = new JPanel(new BorderLayout(0, 5));
+        JPanel panel = new JPanel(new BorderLayout(0, 4));
         panel.setBackground(BG_CARD);
 
         JLabel label = new JLabel(nombre);
         label.setForeground(TEXT_SECONDARY);
-        label.setFont(new Font("SansSerif", Font.BOLD, 11));
+        label.setFont(new Font("SansSerif", Font.BOLD, 10));
 
         panel.add(label, BorderLayout.NORTH);
         panel.add(campo, BorderLayout.CENTER);
@@ -536,7 +646,7 @@ public class VentanaPrincipal extends JFrame {
     private JLabel crearTituloCentrado(String texto) {
         JLabel label = new JLabel(texto, JLabel.CENTER);
         label.setForeground(TEXT_SECONDARY);
-        label.setFont(new Font("SansSerif", Font.BOLD, 12));
+        label.setFont(new Font("SansSerif", Font.BOLD, 11));
         label.setAlignmentX(Component.CENTER_ALIGNMENT);
         return label;
     }
@@ -578,19 +688,8 @@ public class VentanaPrincipal extends JFrame {
     }
 
     /**
-     * Actualiza la tabla de instrucciones limpiando los datos previos e ingresando nuevos.
-     * @param listaInstrucciones Una lista de arreglos de objetos donde cada posición es una columna: [Instrucción ASM, Código Binario]
-     */
-    public void actualizarTablaInstrucciones(List<Object[]> listaInstrucciones) {
-        modeloTablaInstrucciones.setRowCount(0);
-        for (Object[] fila : listaInstrucciones) {
-            modeloTablaInstrucciones.addRow(fila);
-        }
-    }
-
-    /**
      * Actualiza la tabla de memoria RAM, ingresa los datos y selecciona/resalta automáticamente la fila indicada.
-     * @param listaMemoria Una lista de arreglos de objetos donde cada posición es: [Posición, Instrucción ASM, Valor en Memoria]
+     * @param listaMemoria Una lista de arreglos de objetos donde cada posición es: [Posición, Valor]
      * @param indiceResaltado El índice de la fila que se desea seleccionar (-1 para limpiar la selección)
      */
     public void actualizarTablaMemoria(List<Object[]> listaMemoria, int indiceResaltado) {
@@ -604,6 +703,39 @@ public class VentanaPrincipal extends JFrame {
             tablaMemoria.scrollRectToVisible(tablaMemoria.getCellRect(indiceResaltado, 0, true));
         } else {
             tablaMemoria.clearSelection();
+        }
+    }
+
+    /**
+     * Actualiza la tabla del Disco secundario.
+     * @param listaDisco Lista de arreglos de objetos: [Posición, Valor]
+     */
+    public void actualizarTablaDisco(List<Object[]> listaDisco) {
+        modeloTablaDisco.setRowCount(0);
+        for (Object[] fila : listaDisco) {
+            modeloTablaDisco.addRow(fila);
+        }
+    }
+
+    /**
+     * Actualiza la tabla de Memoria Virtual.
+     * @param listaVirtual Lista de arreglos de objetos: [Posición, Valor]
+     */
+    public void actualizarTablaMemoriaVirtual(List<Object[]> listaVirtual) {
+        modeloTablaVirtual.setRowCount(0);
+        for (Object[] fila : listaVirtual) {
+            modeloTablaVirtual.addRow(fila);
+        }
+    }
+
+    /**
+     * Actualiza la tabla de la Lista de Trabajos.
+     * @param listaTrabajos Lista de arreglos de objetos: [PID, Nombre Archivo, Estado (7 estados)]
+     */
+    public void actualizarTablaTrabajos(List<Object[]> listaTrabajos) {
+        modeloTablaTrabajos.setRowCount(0);
+        for (Object[] fila : listaTrabajos) {
+            modeloTablaTrabajos.addRow(fila);
         }
     }
 
@@ -624,13 +756,19 @@ public class VentanaPrincipal extends JFrame {
     }
 
     /**
-     * Limpia la vista de la interfaz, reseteando las tablas y los registros del CPU a sus valores iniciales.
+     * Limpia la vista de la interfaz, reseteando las tablas, la consola y los registros del CPU a sus valores iniciales.
      */
     public void limpiarVista() {
-        modeloTablaInstrucciones.setRowCount(0);
         modeloTablaMemoria.setRowCount(0);
+        modeloTablaDisco.setRowCount(0);
+        modeloTablaVirtual.setRowCount(0);
+        modeloTablaTrabajos.setRowCount(0);
+        
         tablaMemoria.clearSelection();
         setEstadoBCP("ESPERANDO ARCHIVO");
+
+        if (txtPantalla != null) txtPantalla.setText("");
+        if (txtTeclado != null) txtTeclado.setText("");
 
         setPC(0);
         lblProcessID.setText("Sin proceso cargado");
@@ -655,10 +793,18 @@ public class VentanaPrincipal extends JFrame {
     public int getTamanoMemoriaSeleccionado() { return spTamanoMemoria != null ? (int) spTamanoMemoria.getValue() : SystemConfig.getMemorySize(); }
     public int getLimiteKernelSeleccionado() { return spLimiteKernel != null ? (int) spLimiteKernel.getValue() : SystemConfig.getUserMemoryStart(); }
 
-    public DefaultTableModel getModeloTablaInstrucciones() { return modeloTablaInstrucciones; }
     public DefaultTableModel getModeloTablaMemoria() { return modeloTablaMemoria; }
-    public JTable getTablaInstrucciones() { return tablaInstrucciones; }
+    public DefaultTableModel getModeloTablaDisco() { return modeloTablaDisco; }
+    public DefaultTableModel getModeloTablaVirtual() { return modeloTablaVirtual; }
+    public DefaultTableModel getModeloTablaTrabajos() { return modeloTablaTrabajos; }
+
     public JTable getTablaMemoria() { return tablaMemoria; }
+    public JTable getTablaDisco() { return tablaDisco; }
+    public JTable getTablaVirtual() { return tablaVirtual; }
+    public JTable getTablaTrabajos() { return tablaTrabajos; }
+
+    public JTextArea getTxtPantalla() { return txtPantalla; }
+    public JTextField getTxtTeclado() { return txtTeclado; }
 
     public void setEstadoBCP(String estado) { lblEstadoBCP.setText("ESTADO: " + estado); }
     public void setPC(int valor) { txtPC.setText(String.valueOf(valor)); }

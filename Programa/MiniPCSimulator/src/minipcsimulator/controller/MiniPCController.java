@@ -175,7 +175,10 @@ public class MiniPCController {
 
         vista.setProcessID(this.process.getPCB().getPID());
         vista.deshabilitarConfiguraciones();
-        vista.actualizarTablaInstrucciones(loadedProgramInstructions);
+        ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
+        vista.actualizarTablaDisco(diskLists.get(0));
+        vista.actualizarTablaMemoriaVirtual(diskLists.get(1));
+        //vista.actualizarTablaInstrucciones(loadedProgramInstructions);
     }
 
     /**
