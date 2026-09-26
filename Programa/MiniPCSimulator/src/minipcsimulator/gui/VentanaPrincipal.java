@@ -28,17 +28,21 @@ public class VentanaPrincipal extends JFrame {
     private static final Color RED = new Color(160, 45, 55);
     private static final Color CYAN = new Color(35, 120, 135);
     private static final Color ORANGE = new Color(175, 105, 35);
+    private static final Color GRAY = new Color(50, 55, 65);
 
     // Componentes de la interfaz
     private JButton btnSeleccionar, btnCargar, btnPasoAPaso, btnEjecutar, btnLimpiar;
-    private JSpinner spTamanoMemoria, spLimiteKernel;
-    private JButton btnAplicarConfig;
+    private JButton btnAbrirConfig;
+    private JSpinner spTamanoMemoria, spLimiteKernel, spTamanoDisco, spTamanoVirtual;
     private JTable tablaInstrucciones;
     private DefaultTableModel modeloTablaInstrucciones;
     private JTable tablaMemoria;
     private DefaultTableModel modeloTablaMemoria;
     private JTextField txtPC, txtIR, txtAC, txtAX, txtBX, txtCX, txtDX;
     private JLabel lblEstadoBCP, lblProcessID;
+
+    // Estado del botón de configuración
+    private boolean configuracionHabilitada = true;
 
     public VentanaPrincipal() {
         initComponents();
@@ -146,28 +150,53 @@ public class VentanaPrincipal extends JFrame {
         panelPrincipal.add(separador);
         panelPrincipal.add(Box.createVerticalStrut(18));
 
-        JLabel tituloRAM = crearTituloCentrado("MEMORIA PRINCIPAL");
-        panelPrincipal.add(tituloRAM);
-        panelPrincipal.add(Box.createVerticalStrut(14));
+        // Botón para abrir el diálogo modal de configuración
+        btnAbrirConfig = crearBoton("⚙ Configuración", GRAY);
+        btnAbrirConfig.addActionListener(e -> abrirDialogoConfiguracion());
+        panelPrincipal.add(btnAbrirConfig);
+
+        return panelPrincipal;
+    }
+
+    /**
+     * PENDIENTE: Muestra la ventana flotante modal de configuración de memoria.
+     * Obliga al usuario a Guardar o Cancelar sin poder cerrar libremente la ventana.
+     */
+    private void abrirDialogoConfiguracion() {
+        JDialog dialogConfig = new JDialog(this, "Configuración de Sistema", true);
+        dialogConfig.setSize(340, 420);
+        dialogConfig.setResizable(false);
+        dialogConfig.setLocationRelativeTo(this);
+        
+        // Bloquear el botón 'X' de la ventana para forzar la toma de decisiones por botones
+        dialogConfig.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+
+        JPanel panelModal = new JPanel(new BorderLayout(10, 10));
+        panelModal.setBackground(BG_PANEL);
+        panelModal.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        // Inicialización de Spinners dentro del modal con los valores actuales del sistema
+        spTamanoMemoria = new JSpinner(new SpinnerNumberModel(SystemConfig.getMemorySize(), SystemConfig.MEMORY_SIZE_MIN, SystemConfig.MEMORY_SIZE_MAX, 16));
+        spLimiteKernel = new JSpinner(new SpinnerNumberModel(SystemConfig.getUserMemoryStart(), SystemConfig.USER_MEMORY_START_MIN, SystemConfig.MEMORY_SIZE_MAX - 16, 8));
+        spTamanoDisco = new JSpinner(new SpinnerNumberModel(512, 128, 2048, 32));
+        spTamanoVirtual = new JSpinner(new SpinnerNumberModel(/*SystemConfig.getVirtualMemorySize() */ 64, 16, 256, 16)); //PENDIENTE
+
+        estilitarSpinner(spTamanoMemoria);
+        estilitarSpinner(spLimiteKernel);
+        estilitarSpinner(spTamanoDisco);
+        estilitarSpinner(spTamanoVirtual);
 
         JPanel cardRAM = crearCard();
         cardRAM.setLayout(new GridBagLayout());
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 4, 6, 4);
+        gbc.insets = new Insets(5, 4, 5, 4);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         JLabel lblRAM = crearLabel("Tamaño RAM");
         JLabel lblKernel = crearLabel("Espacio Kernel");
-
-        spTamanoMemoria = new JSpinner(new SpinnerNumberModel(SystemConfig.getMemorySize(), SystemConfig.MEMORY_SIZE_MIN, SystemConfig.MEMORY_SIZE_MAX, 16));
-        spLimiteKernel = new JSpinner(new SpinnerNumberModel(SystemConfig.getUserMemoryStart(), SystemConfig.USER_MEMORY_START_MIN, SystemConfig.MEMORY_SIZE_MAX-16, 8));
-
-        estilizarSpinner(spTamanoMemoria);
-        estilizarSpinner(spLimiteKernel);
-
-        btnAplicarConfig = new JButton("Aplicar configuración");
-        estilizarBotonSecundario(btnAplicarConfig);
+        JLabel lblDisco = crearLabel("Tamaño Disco");
+        JLabel lblVirtual = crearLabel("Memoria Virtual");
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -184,12 +213,53 @@ public class VentanaPrincipal extends JFrame {
         cardRAM.add(spLimiteKernel, gbc);
 
         gbc.gridy = 4;
-        gbc.insets = new Insets(14, 4, 4, 4);
-        cardRAM.add(btnAplicarConfig, gbc);
+        cardRAM.add(lblDisco, gbc);
 
-        panelPrincipal.add(cardRAM);
+        gbc.gridy = 5;
+        cardRAM.add(spTamanoDisco, gbc);
 
-        return panelPrincipal;
+        gbc.gridy = 6;
+        cardRAM.add(lblVirtual, gbc);
+
+        gbc.gridy = 7;
+        cardRAM.add(spTamanoVirtual, gbc);
+
+        // Panel de botones (Guardar / Cancelar)
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        panelBotones.setOpaque(false);
+
+        JButton btnCancelar = new JButton("Cancelar");
+        estilizarBotonSecundario(btnCancelar);
+        btnCancelar.addActionListener(e -> dialogConfig.dispose());
+
+        JButton btnGuardar = new JButton("Guardar");
+        btnGuardar.setPreferredSize(new Dimension(100, 32));
+        btnGuardar.setForeground(Color.WHITE);
+        btnGuardar.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btnGuardar.setFocusPainted(false);
+        btnGuardar.setBorderPainted(false);
+        btnGuardar.putClientProperty(
+                FlatClientProperties.STYLE,
+                "background: " + convertirColor(BLUE) + "; foreground: #FFFFFF; font: bold;"
+        );
+
+        btnGuardar.addActionListener(e -> {
+            // Aplicar configuraciones globalmente a SystemConfig
+            SystemConfig.setMemorySize((int) spTamanoMemoria.getValue());
+            SystemConfig.setUserMemoryStart((int) spLimiteKernel.getValue());
+            
+            mostrarInfo("Configuración guardada correctamente.");
+            dialogConfig.dispose();
+        });
+
+        panelBotones.add(btnCancelar);
+        panelBotones.add(btnGuardar);
+
+        panelModal.add(cardRAM, BorderLayout.CENTER);
+        panelModal.add(panelBotones, BorderLayout.SOUTH);
+
+        dialogConfig.setContentPane(panelModal);
+        dialogConfig.setVisible(true);
     }
 
     // Crea el panel central con las tablas de programa y memoria
@@ -361,8 +431,7 @@ public class VentanaPrincipal extends JFrame {
 
     // Estiliza un botón secundario
     private void estilizarBotonSecundario(JButton boton) {
-        boton.setPreferredSize(new Dimension(190, 36));
-        boton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        boton.setPreferredSize(new Dimension(90, 32));
         boton.setFocusPainted(false);
 
         boton.putClientProperty(
@@ -375,8 +444,8 @@ public class VentanaPrincipal extends JFrame {
     }
 
     // Aplica estilos al JSpinner
-    private void estilizarSpinner(JSpinner spinner) {
-        spinner.setPreferredSize(new Dimension(190, 34));
+    private void estilitarSpinner(JSpinner spinner) {
+        spinner.setPreferredSize(new Dimension(190, 30));
         spinner.putClientProperty(
                 FlatClientProperties.STYLE,
                 "background: #16191E; " +
@@ -529,7 +598,7 @@ public class VentanaPrincipal extends JFrame {
         for (Object[] fila : listaMemoria) {
             modeloTablaMemoria.addRow(fila);
         }
-        
+
         if (indiceResaltado >= 0 && indiceResaltado < tablaMemoria.getRowCount()) {
             tablaMemoria.setRowSelectionInterval(indiceResaltado, indiceResaltado);
             tablaMemoria.scrollRectToVisible(tablaMemoria.getCellRect(indiceResaltado, 0, true));
@@ -537,23 +606,21 @@ public class VentanaPrincipal extends JFrame {
             tablaMemoria.clearSelection();
         }
     }
-    
+
     /**
      * Deshabilita los controles de configuración de memoria y kernel para evitar cambios mientras un programa está cargado.
      */
     public void deshabilitarConfiguraciones() {
-        spTamanoMemoria.setEnabled(false);
-        spLimiteKernel.setEnabled(false);
-        btnAplicarConfig.setEnabled(false);
+        configuracionHabilitada = false;
+        if (btnAbrirConfig != null) btnAbrirConfig.setEnabled(false);
     }
 
     /**
      * Habilita los controles de configuración de memoria y kernel.
      */
     public void habilitarConfiguraciones() {
-        spTamanoMemoria.setEnabled(true);
-        spLimiteKernel.setEnabled(true);
-        btnAplicarConfig.setEnabled(true);
+        configuracionHabilitada = true;
+        if (btnAbrirConfig != null) btnAbrirConfig.setEnabled(true);
     }
 
     /**
@@ -581,10 +648,12 @@ public class VentanaPrincipal extends JFrame {
     public JButton getBtnPasoAPaso() { return btnPasoAPaso; }
     public JButton getBtnEjecutar() { return btnEjecutar; }
     public JButton getBtnLimpiar() { return btnLimpiar; }
-    public JButton getBtnAplicarConfig() { return btnAplicarConfig; }
+    public JButton getBtnAbrirConfig() { return btnAbrirConfig; }
 
-    public int getTamanoMemoriaSeleccionado() { return (int) spTamanoMemoria.getValue(); }
-    public int getLimiteKernelSeleccionado() { return (int) spLimiteKernel.getValue(); }
+    // Métodos delegados para mantener la compatibilidad con MiniPCController
+    public JButton getBtnAplicarConfig() { return btnAbrirConfig; }
+    public int getTamanoMemoriaSeleccionado() { return spTamanoMemoria != null ? (int) spTamanoMemoria.getValue() : SystemConfig.getMemorySize(); }
+    public int getLimiteKernelSeleccionado() { return spLimiteKernel != null ? (int) spLimiteKernel.getValue() : SystemConfig.getUserMemoryStart(); }
 
     public DefaultTableModel getModeloTablaInstrucciones() { return modeloTablaInstrucciones; }
     public DefaultTableModel getModeloTablaMemoria() { return modeloTablaMemoria; }

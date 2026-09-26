@@ -13,6 +13,7 @@ import minipcsimulator.model.CPU;
 import minipcsimulator.model.Dispatcher;
 import minipcsimulator.model.Loader;
 import minipcsimulator.model.MainMemory;
+import minipcsimulator.model.Disk;
 import minipcsimulator.model.MemoryRegister;
 import minipcsimulator.model.PCB;
 import minipcsimulator.model.PCB.ProcessState;
@@ -30,6 +31,7 @@ public class MiniPCController {
     //private MiniPCModel modelo;
     private VentanaPrincipal vista;
     private MainMemory memory;
+    private Disk disk;
     private Process process;
     private CPU cpu;
     private ArrayList<Integer> listProcessMemory = new ArrayList<>();
@@ -43,6 +45,7 @@ public class MiniPCController {
     public MiniPCController() {
         this.vista = new VentanaPrincipal();
         this.memory = new MainMemory();
+        this.disk = new Disk();
         this.cpu = new CPU(this.memory);
 
         actualizarVista();
@@ -349,10 +352,13 @@ public class MiniPCController {
      */
     private void reiniciarSistema() {
         this.memory = null; //sacamos memoria vieja
+        this.disk = null; //sacamos disco viejo
         this.cpu = null; //sacamos cpu vieja
 
         this.memory = new MainMemory(); // ponemos memoria nueva
         this.cpu = new CPU(this.memory); // ponemos cpu nueva
+
+        this.disk = new Disk(); // ponemos disco nuevo
 
         this.process = null; // sacamos proceso viejo
         listProcessMemory.clear(); // limpiamos lista de procesos
