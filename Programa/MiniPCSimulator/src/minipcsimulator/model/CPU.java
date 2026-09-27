@@ -1,5 +1,9 @@
 package minipcsimulator.model;
 
+import java.util.Stack;
+import java.util.ArrayList;
+import minipcsimulator.utils.SystemConfig;
+
 /**
  * Clase CPU que se encarga de ejecutar las instrucciones de un proceso.
  * @author johnsydev
@@ -81,6 +85,15 @@ public class CPU {
     private int CX = 0;
     private int DX = 0;
 
+    private Stack<Integer> stack;
+
+    private int PSW = 0; // program status word, para banderas aritmeticas y de control, para este proyecto es solo Zero Flag (ZF)
+
+    // Controles internos
+
+    private String outputMessages = "";
+    private boolean hasPendingOutput = false;
+
     /**
      * Constructor de la clase CPU.
      * @param memory La memoria principal del sistema.
@@ -103,6 +116,10 @@ public class CPU {
         this.BX = pcb.getBX();
         this.CX = pcb.getCX();
         this.DX = pcb.getDX();
+
+        this.stack = pcb.getStack();
+
+        this.PSW = pcb.getPSW();
     }
 
     /**
@@ -127,42 +144,119 @@ public class CPU {
      */
     public void execute() {
         // se obtienen los datos de la instrucción actual
-        OpCode opcode = OpCode.getByCode(IR.getInstructionType());
-        OpCode register = OpCode.getByCode(IR.getRegister());
-        String value = IR.getValue();
-
-        int intValue = 0;
-        if (value != null && !value.isEmpty()) {
-            try {
-                intValue = Integer.parseInt(value);
-            } catch (NumberFormatException e) {
-                //despues ver
-            }
+        String instructionType = IR.getInstructionType();
+        if (instructionType.equals("INT")) {
+            instructionType += "_" + IR.getOperand(0);
+            System.out.println(instructionType);
         }
+        OpCode opcode = OpCode.getByCode(instructionType);
+
+        
 
 
-        if (opcode == null || register == null) {
+        if (opcode == null) {
             System.out.println("Error: Instrucción o registro no reconocido.");
             return;
         }
 
         switch (opcode) {
             case LOAD:
-                executeLOAD(register);
+                executeLOAD(OpCode.getByCode(IR.getOperand(0)));
                 break;
             case STORE:
-                executeSTORE(register);
+                executeSTORE(OpCode.getByCode(IR.getOperand(0)));
                 break;
             case ADD:
-                executeADD(register);
+                executeADD(OpCode.getByCode(IR.getOperand(0)));
                 break;
             case SUB:
-                executeSUB(register);
+                executeSUB(OpCode.getByCode(IR.getOperand(0)));
                 break;
             case MOV:
-                executeMOV(register, intValue);
+                if (!IR.isOperandRegister(1)) { // si el segundo operando no es un registro, se asume que es un valor numérico
+                    if (IR.getOperand(1) != null && !IR.getOperand(1).isEmpty()) {
+                        try {
+                            executeMOV(OpCode.getByCode(IR.getOperand(0)), Integer.parseInt(IR.getOperand(1)));
+                        } catch (NumberFormatException e) {
+                            //despues ver
+                        }
+                    }
+                    
+                }
+                else { // se trata como registro
+                    executeMOV(OpCode.getByCode(IR.getOperand(0)), OpCode.getByCode(IR.getOperand(1)));
+                }
                 break;
-
+            case INC:
+                if (IR.getOperandsCount() == 0) {
+                    executeINC();
+                } else {
+                    executeINC(OpCode.getByCode(IR.getOperand(0)));
+                }
+                break;
+            case DEC:
+                if (IR.getOperandsCount() == 0) {
+                    executeDEC();
+                } else {
+                    executeDEC(OpCode.getByCode(IR.getOperand(0)));
+                }
+                break;
+            case SWAP:
+                executeSWAP(OpCode.getByCode(IR.getOperand(0)), OpCode.getByCode(IR.getOperand(1)));
+                break;
+            case JMP:
+                try {
+                    executeJMP(Integer.parseInt(IR.getOperand(0)));
+                } catch (NumberFormatException e) {
+                    //despues ver
+                }
+                break;
+            case JE:
+                try {
+                    executeJE(Integer.parseInt(IR.getOperand(0)));
+                } catch (NumberFormatException e) {
+                    //despues ver
+                }
+                break;
+            case JNE:
+                try {
+                    executeJNE(Integer.parseInt(IR.getOperand(0)));
+                } catch (NumberFormatException e) {
+                    //despues ver
+                }
+                break;
+            case CMP:
+                executeCMP(OpCode.getByCode(IR.getOperand(0)), OpCode.getByCode(IR.getOperand(1)));
+                break;
+            case PARAM:
+                ArrayList<Integer> paramsPARAM = new ArrayList<>();
+                for (int i = 0; i < IR.getOperandsCount(); i++) {
+                    try {
+                        paramsPARAM.add(Integer.parseInt(IR.getOperand(i)));
+                    } catch (NumberFormatException e) {
+                        //despues ver
+                    }
+                }
+                executePARAM(paramsPARAM);
+                break;
+            case PUSH:
+                executePUSH(OpCode.getByCode(IR.getOperand(0)));
+                break;
+            case POP:
+                executePOP(OpCode.getByCode(IR.getOperand(0)));
+                break;
+            case INT_20H:
+                executeINT_20H();
+                break;
+            case INT_10H:
+                executeINT_10H();               
+                break;
+            case INT_09H:
+                executeINT_09H();
+                break;
+            case INT_21H:
+                executeINT_21H();
+                break;
             default:
                 System.out.println("Error: Operación no reconocida.");
         }
@@ -290,6 +384,308 @@ public class CPU {
         }
     }
 
+    /**
+     * Ejecuta la instrucción MOV, moviendo el valor de un registro a otro.
+     * @param destRegister El registro destino donde se moverá el valor.
+     * @param srcRegister El registro fuente desde donde se obtendrá el valor.
+     */
+    public void executeMOV(OpCode destRegister, OpCode srcRegister) { //método sobrecargado
+        switch (srcRegister) {
+            case AX:
+                executeMOV(destRegister, AX);
+                break;
+            case BX:
+                executeMOV(destRegister, BX);
+                break;
+            case CX:
+                executeMOV(destRegister, CX);
+                break;
+            case DX:
+                executeMOV(destRegister, DX);
+                break;
+            default:
+                System.out.println("Error: Registro no reconocido.");
+        }
+    }
+
+    /**
+     * Ejecuta la instrucción INC, incrementando en 1 el valor del acumulador (AC).
+     */
+    public void executeINC() {
+        AC++;
+    }
+
+    /**
+     * Ejecuta la instrucción INC, incrementando en 1 el valor del registro especificado.
+     * @param register El registro que se incrementará en 1.
+     */
+    public void executeINC(OpCode register) {
+        switch (register) {
+            case AX:
+                AX++;
+                break;
+            case BX:
+                BX++;
+                break;
+            case CX:
+                CX++;
+                break;
+            case DX:
+                DX++;
+                break;
+            default:
+                System.out.println("Error: Registro no reconocido.");
+        }
+    }
+
+    /**
+     * Ejecuta la instrucción DEC, decrementando en 1 el valor del acumulador (AC).
+     */
+    public void executeDEC() {
+        AC--;
+    }
+
+    /**
+     * Ejecuta la instrucción DEC, decrementando en 1 el valor del registro especificado.
+     * @param register El registro que se decrementará en 1.
+     */
+    public void executeDEC(OpCode register) {
+        switch (register) {
+            case AX:
+                AX--;
+                break;
+            case BX:
+                BX--;
+                break;
+            case CX:
+                CX--;
+                break;
+            case DX:
+                DX--;
+                break;
+            default:
+                System.out.println("Error: Registro no reconocido.");
+        }
+    }
+
+    // Para swap:
+    /**
+     * Obtiene el valor de un registro.
+     * @param register El registro del cual se obtiene el valor.
+     * @return El valor del registro.
+     */
+    private int getRegisterValue(OpCode register) {
+        switch (register) {
+            case AX:
+                return AX;
+            case BX:
+                return BX;
+            case CX:
+                return CX;
+            case DX:
+                return DX;
+            default:
+                System.out.println("Error: Registro no reconocido.");
+                return 0;
+        }
+    }
+
+    /**
+     * Establece el valor de un registro.
+     * @param register El registro al cual se le asignará el valor.
+     * @param value El valor a asignar al registro.
+     */
+    private void setRegisterValue(OpCode register, int value) {
+        switch (register) {
+            case AX:
+                AX = value;
+                break;
+            case BX:
+                BX = value;
+                break;
+            case CX:
+                CX = value;
+                break;
+            case DX:
+                DX = value;
+                break;
+            default:
+                System.out.println("Error: Registro no reconocido.");
+        }
+    }
+
+    /**
+     * Ejecuta la instrucción SWAP, intercambiando los valores de dos registros especificados.
+     * @param reg1 El primer registro a intercambiar.
+     * @param reg2 El segundo registro a intercambiar.
+     */
+    public void executeSWAP(OpCode reg1, OpCode reg2) {
+        if (reg1 == null || reg2 == null) {
+            System.out.println("Error: Registro no reconocido.");
+            return;
+        } 
+        int valueR1 = getRegisterValue(reg1);
+        int valueR2 = getRegisterValue(reg2);
+
+        setRegisterValue(reg1, valueR2);
+        setRegisterValue(reg2, valueR1);
+    }
+
+    /**
+     * Ejecuta la instrucción JMP, desplazando el valor del contador de programa (PC) la cantidad de posiciones especificada.
+     * @param countPositions Desplazamiento de posiciones a realizar en el PC (positivo o negativo).
+     */
+    public void executeJMP(int countPositions) {
+        int newPC = this.PC + countPositions;
+        if (newPC >= pcb.getStartPosition() && newPC < pcb.getEndPosition()) {
+            this.PC = newPC;
+        } else {
+            System.out.println("Error: Dirección de salto fuera del rango del proceso (Segmentation Fault).");
+            pcb.setState(PCB.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
+        }
+    }
+
+    /**
+     * Ejecuta la instrucción JE (Jump if Equal), desplazando el valor del contador de programa (PC) la cantidad de posiciones especificada si el Zero Flag (ZF) está activado.
+     * @param countPositions Desplazamiento de posiciones a realizar en el PC (positivo o negativo).
+     */
+    public void executeJE(int countPositions) {
+        if (PSW == 1) { // Verifica zero flag
+            executeJMP(countPositions);
+        }
+    }
+
+    /**
+     * Ejecuta la instrucción JNE (Jump if Not Equal), desplazando el valor del contador de programa (PC) la cantidad de posiciones especificada si el Zero Flag (ZF) está desactivado.
+     * @param countPositions Desplazamiento de posiciones a realizar en el PC (positivo o negativo).
+     */
+    public void executeJNE(int countPositions) {
+        if (PSW == 0) { // Verifica zero flag
+            executeJMP(countPositions);
+        }
+    }
+
+    /**
+     * Ejecuta la instrucción CMP (Compare), comparando los valores de dos registros especificados y actualizando el Zero Flag (ZF) según el resultado de la comparación.
+     * Si los valores de los registros son iguales, el bit del ZF se activa (1), de lo contrario, se desactiva (0).
+     * @param reg1 El primer registro a comparar.
+     * @param reg2 El segundo registro a comparar.
+     */
+    public void executeCMP(OpCode reg1, OpCode reg2) {
+        int valueR1 = getRegisterValue(reg1);
+        int valueR2 = getRegisterValue(reg2);
+
+        if (valueR1 == valueR2) {
+            PSW = 1; // se enciende bit de zero flag
+        } else {
+            PSW = 0; // se apaga bit de zero flag
+        }
+    }
+
+    /**
+     * Ejecuta la instrucción PARAM, agregando los parámetros especificados a la pila (stack) del proceso.
+     * Si la pila está llena, se muestra un mensaje de error y se cambia el estado del proceso a EXIT.
+     * @param params La lista de parámetros a agregar a la pila.
+     */
+    public void executePARAM(ArrayList<Integer> params) {
+        for (Integer param : params) {
+            if (stack.size() >= SystemConfig.STACK_SIZE) {
+                System.out.println("Error: Stack Overflow. No se puede hacer PARAM, la pila está llena.");
+                pcb.setState(PCB.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
+                return;
+            }
+            stack.push(param);
+        }
+    }
+
+    /**
+     * Ejecuta la instrucción PUSH, agregando el valor del registro especificado a la pila (stack) del proceso.
+     * Si la pila está llena, se muestra un mensaje de error y se cambia el estado del proceso a EXIT.
+     * @param register El registro cuyo valor se agregará a la pila.
+     */
+    public void executePUSH(OpCode register) {
+        int value = getRegisterValue(register);
+        if (stack.size() >= SystemConfig.STACK_SIZE) {
+            System.out.println("Error: Stack Overflow. No se puede hacer PUSH, la pila está llena.");
+            pcb.setState(PCB.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
+            return;
+        }
+        stack.push(value);
+    }
+
+    /**
+     * Ejecuta la instrucción POP, eliminando el valor de la pila (stack) del proceso y almacenándolo en el registro especificado.
+     * Si la pila está vacía, se muestra un mensaje de error y se cambia el estado del proceso a EXIT.
+     * @param register El registro donde se almacenará el valor extraído de la pila.
+     */
+    public void executePOP(OpCode register) {
+        if (stack.isEmpty()) {
+            System.out.println("Error: Stack Underflow. No se puede hacer POP, la pila está vacía.");
+            pcb.setState(PCB.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
+            return;
+        }
+        int value = stack.pop();
+        setRegisterValue(register, value);
+    }
+
+    /**
+     * Ejecuta la instrucción INT 20H, finalizando el proceso actual y cambiando su estado a EXIT.
+     * Esta instrucción se utiliza para indicar que el proceso ha terminado su ejecución.
+     */
+    public void executeINT_20H() {
+        System.out.println("Finalizando proceso " + pcb.getPID());
+        pcb.setState(PCB.ProcessState.EXIT); // REVISAR ESTO
+    }
+
+    /**
+     * Devuelve el mensaje de salida del proceso.
+     * @return El mensaje de salida del proceso.
+     */
+    public String getOutputMessage() {
+        System.out.println(this.outputMessages);
+        String output = this.outputMessages;
+        this.outputMessages = "";
+        this.hasPendingOutput = false;
+        return output;
+    }
+
+    //Para output:
+
+    /**
+     * Indica si hay mensajes de salida pendientes del proceso.
+     * @return true si hay mensajes de salida pendientes, false en caso contrario.
+     */
+    public boolean hasPendingOutput() {
+        return this.hasPendingOutput;
+    }
+
+    /**
+     * Imprime un mensaje en la consola y lo agrega a los mensajes de salida del proceso.
+     * @param message El mensaje a imprimir y agregar a los mensajes de salida del proceso.
+     */
+    public void printToConsole(String message) {
+        System.out.println(message);
+        this.outputMessages += message + "\n";
+        this.hasPendingOutput = true;
+    }
+
+    /**
+     * Ejecuta la instrucción INT 10H.
+     * Esta instrucción se utiliza para realizar una operación específica.
+     */
+    public void executeINT_10H() {
+        printToConsole("" + DX);
+    }
+
+    //input
+    public void executeINT_09H() {
+        // PENDIENTE
+    }
+
+    // file manager
+    public void executeINT_21H() {
+        // PENDIENTE
+    }
 
     /**
      * Método principal que ejecuta una instrucción completa mediante el fecth - execute.

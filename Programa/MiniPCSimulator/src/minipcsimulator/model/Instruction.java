@@ -12,8 +12,7 @@ public class Instruction {
     private ArrayList<String> instructionParts;
 
     private String instructionType;
-    private String register;
-    private String value;
+    private ArrayList<String> operands;
 
     /**
      * Constructor de la clase Instruction.
@@ -22,13 +21,18 @@ public class Instruction {
      */
     public Instruction(String originalInstructionText, ArrayList<String> originalInstructionParts) {
         this.originalInstructionText = originalInstructionText.trim();
-        this.instructionParts = originalInstructionParts;
+        this.instructionParts = originalInstructionParts != null ? originalInstructionParts : new ArrayList<>();
 
-        if (originalInstructionParts != null && !originalInstructionText.isEmpty()) {
-            // Instrucción separada
-            this.instructionType = originalInstructionParts.get(0);
-            this.register = originalInstructionParts.get(1);
-            if (originalInstructionParts.size() > 2) this.value = originalInstructionParts.get(2);
+        this.operands = new ArrayList<>();
+
+        if (!this.instructionParts.isEmpty()) {
+            this.instructionType = this.instructionParts.get(0).toUpperCase();
+
+            for (int i = 1; i < this.instructionParts.size(); i++) {
+                this.operands.add(this.instructionParts.get(i).trim());
+            }
+        } else {
+            this.instructionType = "";
         }
     }
 
@@ -62,15 +66,32 @@ public class Instruction {
      * Obtiene el registro de la instrucción.
      * @return El registro de la instrucción.
      */
-    public String getRegister() {
-        return register;
+    public String getOperand(int index) {
+        if (index >= 0 && index < operands.size()) {
+            return operands.get(index);
+        }
+        return null;
     }
 
     /**
-     * Obtiene el valor de la instrucción.
-     * @return El valor de la instrucción.
+     * Obtiene la lista de operandos de la instrucción.
+     * @return La lista de operandos de la instrucción.
      */
-    public String getValue() {
-        return value;
+    public ArrayList<String> getOperands() {
+        return operands;
+    }
+
+    public int getOperandsCount() {
+        return operands.size();
+    }
+
+    public boolean isOperandRegister(int index) {
+        String operand = getOperand(index);
+        if (operand != null && !operand.isEmpty()) {
+            if (operand.endsWith("X")) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -1,5 +1,6 @@
 package minipcsimulator.model;
 
+import java.util.Stack;
 import minipcsimulator.utils.SystemConfig;
 
 /**
@@ -50,6 +51,10 @@ public class PCB {
     private int CX = 0;
     private int DX = 0;
 
+    private Stack<Integer> stack;
+
+    private int PSW = 0; // program status word, para banderas aritmeticas y de control, para este proyecto es solo Zero Flag (ZF)
+
     // Otros atributos
 
     private int priority = 1; // por defecto 1 para todos durante este proyecto
@@ -68,6 +73,7 @@ public class PCB {
         this.memoryPosition = (SystemConfig.KERNEL_MEMORY_START + (id-1)) * (4 + SystemConfig.REGISTERS_COUNT);
         this.state = ProcessState.NEW;
         this.PC = startPosition;
+        stack = new Stack();
     }
 
     /**
@@ -174,6 +180,22 @@ public class PCB {
 
     public void setDX(int DX) {
         this.DX = DX;
+    }
+
+    public Stack getStack() {
+        return stack;
+    }
+
+    public void setStack(Stack stack) {
+        this.stack = stack;
+    }
+
+    public int getPSW() {
+        return PSW;
+    }
+
+    public void setPSW(int PSW) {
+        this.PSW = PSW;
     }
 
     public int getPriority() {

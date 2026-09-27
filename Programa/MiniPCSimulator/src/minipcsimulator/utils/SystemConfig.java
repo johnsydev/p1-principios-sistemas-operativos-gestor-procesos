@@ -21,6 +21,7 @@ public class SystemConfig {
     public static final int USER_MEMORY_START_MIN = 16; // lo más mínimo
     
     //Para instrucciones y registros
+    public static final int STACK_SIZE = 5;
     public static final int REGISTERS_COUNT = 4;
 
     /**
