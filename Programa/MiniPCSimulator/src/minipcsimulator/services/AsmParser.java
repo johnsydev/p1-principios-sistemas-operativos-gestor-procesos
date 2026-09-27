@@ -36,9 +36,14 @@ public class AsmParser {
      * @param line La linea de código a dividir.
      * @return Un ArrayList de partes de la linea dividida por cada componente de la instrucción.
      */
-    private static ArrayList<String> getLineArray(String line) {
+    private static ArrayList<String> getLineArray(String line) {  
+        String nline = line.trim();
+
+        if (nline.startsWith(",") || nline.endsWith(",") || nline.contains(",,")) {
+            throw new RuntimeException("Error de sintaxis en la linea " + AsmParser.numberLine);
+        }
         // esto divide el array por espacios y comas
-        ArrayList<String> parts = new ArrayList<>(Arrays.asList(line.trim().split("[,\\s]+")));
+        ArrayList<String> parts = new ArrayList<>(Arrays.asList(nline.split("[,\\s]+")));
         AsmParser.newLines.add(parts);
         return parts;
     }
@@ -82,10 +87,14 @@ public class AsmParser {
      */
     public static boolean isValidInstruction(String instruction) {
         ArrayList<String> parts = getLineArray(instruction);
-        if (parts.isEmpty() || parts.size() < 2) return false;
+        if (parts.isEmpty() || parts.size() < 1) return false;
 
         ArrayList<String> validInstructions = new ArrayList<>(Arrays.asList(
-        "LOAD", "STORE", "ADD", "SUB", "MOV"
+        "LOAD", "STORE", "ADD", "SUB", "MOV", "INC", "DEC", "SWAP", "INT", "JMP", "CMP", "JE", "JNE", "PARAM", "PUSH", "POP"
+        ));
+
+        ArrayList<String> validInterrupts = new ArrayList<>(Arrays.asList(
+            "20H", "10H", "09H", "21H"
         ));
 
         if (!validInstructions.contains(parts.get(0))) {
@@ -97,6 +106,8 @@ public class AsmParser {
             case "STORE":
             case "ADD":
             case "SUB":
+            case "PUSH":
+            case "POP":
                 if (parts.size() == 2 && isValidRegister(parts.get(1).trim())) {
                     return true;
                 }
@@ -104,12 +115,65 @@ public class AsmParser {
                     throw new RuntimeException("Error de sintaxis: Instrucción " + parts.get(0) + " requiere un registro válido en la línea " + AsmParser.numberLine);
                 }
             case "MOV":
-                if (parts.size() == 3 && isValidRegister(parts.get(1).trim()) && isValidNumber(parts.get(2).trim())) {
+                if (parts.size() == 3 && isValidRegister(parts.get(1).trim()) && (isValidNumber(parts.get(2).trim()) || isValidRegister(parts.get(2).trim()))) {
                     return true;
                 }
                 else {
-                    throw new RuntimeException("Error de sintaxis: Instrucción " + parts.get(0) + " requiere un registro y un valor numérico válidos en la línea " + AsmParser.numberLine);
+                    throw new RuntimeException("Error de sintaxis: Instrucción " + parts.get(0) + " requiere un registro y un valor numérico u otro registro válidos en la línea " + AsmParser.numberLine);
                 }
+            
+            case "INC":
+            case "DEC":
+                if (parts.size() == 1 || (parts.size() == 2 && isValidRegister(parts.get(1).trim()))) {
+                    return true;
+                }
+                else {
+                    throw new RuntimeException("Error de sintaxis: Instrucción " + parts.get(0) + " requiere un registro válido en la línea " + AsmParser.numberLine);
+                }
+
+            case "SWAP":
+            case "CMP":
+                if (parts.size() == 3 && isValidRegister(parts.get(1).trim()) && isValidRegister(parts.get(2).trim())) {
+                    return true;
+                }
+                else {
+                    throw new RuntimeException("Error de sintaxis: Instrucción " + parts.get(0) + " requiere dos registros válidos en la línea " + AsmParser.numberLine);
+                }
+
+            case "JMP":
+            case "JE":
+            case "JNE":
+                if (parts.size() == 2 && isValidNumber(parts.get(1).trim())) {
+                    return true;
+                }
+                else {
+                    throw new RuntimeException("Error de sintaxis: Instrucción " + parts.get(0) + " requiere un valor numérico válido en la línea " + AsmParser.numberLine);
+                }
+
+            case "PARAM":
+                if ((parts.size() == 2 && isValidNumber(parts.get(1).trim()))
+                    || (parts.size() == 3 && isValidNumber(parts.get(1).trim()) && isValidNumber(parts.get(2).trim()))
+                    || (parts.size() == 4 && isValidNumber(parts.get(1).trim()) && isValidNumber(parts.get(2).trim()) && isValidNumber(parts.get(3).trim()))
+                ) {
+                    return true;
+                }
+                else {
+                    if (parts.size() < 2 || parts.size() > 4) {
+                        throw new RuntimeException("Error de sintaxis: Instrucción " + parts.get(0) + " requiere entre 1 y 3 valores numéricos válidos en la línea " + AsmParser.numberLine);
+                    }
+                    else {
+                        throw new RuntimeException("Error de sintaxis: Instrucción " + parts.get(0) + " requiere valores numéricos válidos en la línea " + AsmParser.numberLine);
+                    }
+                }
+
+            case "INT":
+                if (parts.size() == 2 && validInterrupts.contains(parts.get(1).trim())) {
+                    return true;
+                }
+                else {
+                    throw new RuntimeException("Error de sintaxis: Interrupción no reconocida en la línea " + AsmParser.numberLine);
+                }
+            
             default:
                 return false;
         }
