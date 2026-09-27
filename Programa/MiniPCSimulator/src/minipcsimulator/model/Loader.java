@@ -14,23 +14,33 @@ public class Loader {
      * @param lines Lista de líneas del archivo .asm originales.
      * @param asmArray Matriz de instrucciones del archivo .asm tratadas por el parser (divididas en partes separadas por comas).
      * @param process El proceso al que se le asignarán las instrucciones.
+     * @param disk El disco donde se almacenarán los programas.
      */
-    public static void loadProgram(ArrayList<String> lines, ArrayList<ArrayList<String>> asmArray, Process process) {
+    public static int loadProgram(ArrayList<String> lines, ArrayList<ArrayList<String>> asmArray, Disk disk) {
         int i = 0;
         ArrayList<Instruction> instructions = new ArrayList<>();
+        int freeSpaceAddress;
+        try {
+            freeSpaceAddress = getFreeSpaceInDisk(asmArray.size(), disk);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al cargar el programa: " + e.getMessage());
+        }
+
+        int startAddress = freeSpaceAddress;
+
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
 
             Instruction instruction = new Instruction(line, asmArray.get(i));
             instructions.add(instruction);
-            instruction.printConversion();
 
+            disk.setPositionInstruction(freeSpaceAddress, instruction);
+
+            freeSpaceAddress++;
             // Para GUI
             i++;
         }
-
-        // Guarda las instrucciones en el proceso para usarlas después al cargar en memoria
-        process.setInstructions(instructions);
+        return startAddress;
     }
 
     /**
@@ -39,13 +49,98 @@ public class Loader {
      * Con esto, el proceso pasa a estado READY y puede ser ejecutado por el CPU.
      * @param process El proceso al que se le asignarán las instrucciones.
      * @param memory La memoria principal del sistema.
+     * @param disk El disco donde se encuentran las instrucciones.
+     * @param startAddress La dirección de inicio en la memoria principal donde se cargarán las instrucciones.
      */
-    public static void loadToMemory(Process process, MainMemory memory) {
-        ArrayList<Instruction> instructions = process.getInstructions();
-        int position = SystemConfig.getUserMemoryStart();
-        for (Instruction instruction : instructions) {
-            memory.setPositionInstruction(position, instruction);
-            position++;
+    public static void loadToMemory(Process process, MainMemory memory, Disk disk) {
+        int size = process.getPCB().getDiskProgramSize(); // Cantidad de instrucciones
+        int startAddressDisk = process.getPCB().getDiskStartPosition(); // posición inicio en DISCO
+
+        ArrayList<Instruction> instructions = new ArrayList<>();
+        try {
+            int position = getFreeSpaceInMemory(size, memory); // posición inicio en RAM, i y position son RAM
+
+            for (int i = position; i < position + size; i++) {
+                Instruction instruction = disk.getInstruction(startAddressDisk);
+                memory.setPositionInstruction(i, instruction);
+                
+                instructions.add(instruction);
+                startAddressDisk++;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error al cargar el programa en memoria: " + e.getMessage());
         }
+        process.setInstructions(instructions);
+    }
+
+    /**
+     * Busca un bloque continuo de celdas libres en el Disco a partir de la
+     * dirección reservada para programas de usuario.
+     * 
+     * @param size Cantidad de instrucciones consecutivas que requiere el programa.
+     * @param disk El Disco Virtual donde se buscará el espacio libre.
+     * @return La dirección de memoria del Disco donde inicia el espacio libre encontrado.
+     * @throws Exception Si el disco está lleno o no hay un bloque contiguo del tamaño requerido.
+     */
+    public static int getFreeSpaceInDisk(int size, Disk disk) throws Exception {
+        int startAddress = SystemConfig.getStartDiskForPrograms();
+        int totalDiskSize = SystemConfig.getDiskSize();
+
+        int consecutiveFree = 0;
+        int startIndex = -1;
+
+        for (int i = startAddress; i < totalDiskSize; i++) {
+            // Verificamos si la celda actual en el disco está libre
+            if (disk.getPosition(i) == null) {
+                if (consecutiveFree == 0) {
+                    startIndex = i; // marca el inicio si no había uno
+                }
+                consecutiveFree++;
+
+                // si se encuentra bloque continuo con la cantidad de celdas necesarias
+                if (consecutiveFree == size) {
+                    return startIndex;
+                }
+            } else {
+                // si se rompe la continuidad, reiniciamos el conteo
+                consecutiveFree = 0;
+                startIndex = -1;
+            }
+        }
+
+        // Si después de recorrer todo el disco no se encontró un bloque contiguo suficiente
+        throw new Exception("No hay espacio libre contiguo suficiente en el Disco Virtual. " +
+                            "Se requerían " + size + " celdas libres.");
+    }
+
+    public static int getFreeSpaceInMemory(int size, MainMemory memory) throws Exception {
+        int startAddress = SystemConfig.getUserMemoryStart();
+        int totalMemorySize = SystemConfig.getMemorySize();
+
+        int consecutiveFree = 0;
+        int startIndex = -1;
+
+        for (int i = startAddress; i < totalMemorySize; i++) {
+            // Verificamos si la celda actual en la memoria está libre
+            if (memory.getPosition(i) == null) {
+                if (consecutiveFree == 0) {
+                    startIndex = i; // marca el inicio si no había uno
+                }
+                consecutiveFree++;
+
+                // si se encuentra bloque continuo con la cantidad de celdas necesarias
+                if (consecutiveFree == size) {
+                    return startIndex;
+                }
+            } else {
+                // si se rompe la continuidad, reiniciamos el conteo
+                consecutiveFree = 0;
+                startIndex = -1;
+            }
+        }
+
+        // Si después de recorrer toda la memoria no se encontró un bloque contiguo suficiente
+        throw new Exception("No hay espacio libre contiguo suficiente en la Memoria Principal. " +
+                            "Se requerían " + size + " celdas libres.");
     }
 }

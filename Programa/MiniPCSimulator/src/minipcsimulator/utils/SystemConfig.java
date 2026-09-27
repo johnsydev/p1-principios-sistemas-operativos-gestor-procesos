@@ -88,4 +88,8 @@ public class SystemConfig {
     public static int getUserMemorySize() {
         return memorySize - userMemoryStart;
     }
+
+    public static int getStartDiskForPrograms() { 
+        return 32; // PENDIENTE
+    }
 }

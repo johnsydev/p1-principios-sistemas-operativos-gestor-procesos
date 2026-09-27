@@ -174,10 +174,12 @@ public class MiniPCController {
         }
 
         this.process = new Process(assignedId, SystemConfig.getUserMemoryStart());
-        Loader.loadProgram(lines, asmArray, this.process); // sin ponerlo en tabla
+        int startAddress = Loader.loadProgram(lines, asmArray, this.disk); // sin ponerlo en tabla
 
         this.process.getPCB().setState(PCB.ProcessState.NEW);
         this.process.getPCB().setStartTime(systemClock); // tick de tiempo de inicio del proceso
+        this.process.getPCB().setDiskStartPosition(startAddress);
+        this.process.getPCB().setDiskProgramSize(asmArray.size());
         vista.setEstadoBCP("NEW");
 
         vista.setProcessID(this.process.getPCB().getPID());
@@ -201,7 +203,7 @@ public class MiniPCController {
             return;
         }
 
-        Loader.loadToMemory(this.process, this.memory);
+        Loader.loadToMemory(this.process, this.memory, this.disk);
 
         this.process.getPCB().setState(PCB.ProcessState.READY);
         vista.setEstadoBCP("READY");

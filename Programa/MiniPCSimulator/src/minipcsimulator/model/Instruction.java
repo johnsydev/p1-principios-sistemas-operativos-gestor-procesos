@@ -37,14 +37,6 @@ public class Instruction {
     }
 
     /**
-     * Imprime la conversión de la instrucción en consola.
-     */
-    public void printConversion() {
-        System.out.print(originalInstructionText);
-        System.out.print("   ->   ");
-    }
-
-    /**
      * Obtiene el texto original de la instrucción.
      * @return El texto original de la instrucción.
      */

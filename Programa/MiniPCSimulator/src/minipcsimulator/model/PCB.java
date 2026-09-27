@@ -64,6 +64,11 @@ public class PCB {
 
     private int priority = 1; // por defecto 1 para todos durante este proyecto
     
+    // DISCO
+
+    private int diskStartPosition = 0;
+    private int diskProgramSize = 0; 
+
     // al iniciar el proceso
 
     /**
@@ -88,6 +93,22 @@ public class PCB {
     public void configEndPosition(int instructionsCount) {
         this.sizeProcessScope = instructionsCount;
         this.endPosition = startPosition + instructionsCount;
+    }
+
+    public void setDiskStartPosition(int diskStartPosition) {
+        this.diskStartPosition = diskStartPosition;
+    }
+
+    public void setDiskProgramSize(int diskProgramSize) {
+        this.diskProgramSize = diskProgramSize;
+    }
+
+    public int getDiskStartPosition() {
+        return diskStartPosition;
+    }
+
+    public int getDiskProgramSize() {
+        return diskProgramSize;
     }
 
     /**
