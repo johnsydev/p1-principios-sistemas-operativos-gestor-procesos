@@ -73,6 +73,10 @@ public class CPU {
         }
     }
 
+    private static int cpu_count = 0;
+
+    private int cpu_id;
+
     private MainMemory memory;
     private PCB pcb;
 
@@ -93,12 +97,15 @@ public class CPU {
 
     private String outputMessages = "";
     private boolean hasPendingOutput = false;
+    private int ticksRemaining = 0;
+    private int currentInstructionAddress = 0;
 
     /**
      * Constructor de la clase CPU.
      * @param memory La memoria principal del sistema.
      */
     public CPU(MainMemory memory) {
+        this.cpu_id = cpu_count++;
         this.memory = memory;
     }
 
@@ -129,6 +136,7 @@ public class CPU {
     public void fetch() {
         if (PC >= pcb.getStartPosition() && PC < pcb.getEndPosition()) {
             this.IR = memory.getInstruction(PC);
+            this.currentInstructionAddress = this.PC;
             this.PC++;
         } else {
             // de momento el profe no puso instrucción de END, entonces se asume
@@ -689,10 +697,35 @@ public class CPU {
 
     /**
      * Método principal que ejecuta una instrucción completa mediante el fecth - execute.
+     * El fecth se encarga de obtener la instrucción y el execute se encarga de ejecutarla.
+     * Si no hay ticks restantes, se realiza el fecth de la instrucción y se determina el tipo de instrucción para establecer los ticks necesarios para su ejecución.
+     * Luego, se decrementa el contador de ticks restantes y se incrementa el tiempo total que el proceso ha estado en ejecución.
+     * Si los ticks restantes llegan a cero, se ejecuta la instrucción.
      */
     public void executeInstruction() {
-        fetch();
-        execute();
+        if (ticksRemaining == 0) {
+            fetch();
+
+            String instructionType = IR.getInstructionType();
+            if (instructionType.equals("INT")) {
+                instructionType += "_" + IR.getOperand(0);
+                System.out.println(instructionType);
+            }
+            OpCode opcode = OpCode.getByCode(instructionType);
+
+            if (opcode != null) {
+                ticksRemaining = opcode.weight;
+            } else {
+                System.out.println("Error: Instrucción o registro no reconocido.");
+            }
+        }
+
+        ticksRemaining--;
+        pcb.incrementTimeSpent();
+
+        if (ticksRemaining == 0) {
+            execute();
+        }
     }
 
 
@@ -725,4 +758,23 @@ public class CPU {
         return DX;
     }
 
+    public int getPSW() {
+        return PSW;
+    }
+
+    public Stack<Integer> getStack() {
+        return stack;
+    }
+
+    public int getCpuID() {
+        return cpu_id;
+    }
+
+    public boolean hasTicksRemaining() {
+        return ticksRemaining > 0;
+    }
+
+    public int getCurrentInstructionAddress() {
+        return currentInstructionAddress;
+    }
 }

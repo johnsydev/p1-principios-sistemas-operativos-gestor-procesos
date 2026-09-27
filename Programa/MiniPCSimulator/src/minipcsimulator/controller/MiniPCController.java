@@ -8,6 +8,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 import minipcsimulator.gui.VentanaPrincipal;
 import minipcsimulator.model.CPU;
 import minipcsimulator.model.Dispatcher;
@@ -34,6 +35,7 @@ public class MiniPCController {
     private Process process;
     private CPU cpu;
     private ArrayList<Integer> listProcessMemory = new ArrayList<>();
+    private int systemClock = 0;
     // lista de procesos: [1, 0, 3, ...], los procesos en 0 terminaron y se pueden reemplazar
     // los que tienen número ese es su ID
 
@@ -52,6 +54,11 @@ public class MiniPCController {
 
         // Muestra GUI
         this.vista.setVisible(true);
+    }
+
+    private void tick() {
+        systemClock++;
+        vista.setTicks(systemClock);
     }
     
     /**
@@ -170,6 +177,7 @@ public class MiniPCController {
         Loader.loadProgram(lines, asmArray, this.process); // sin ponerlo en tabla
 
         this.process.getPCB().setState(PCB.ProcessState.NEW);
+        this.process.getPCB().setStartTime(systemClock); // tick de tiempo de inicio del proceso
         vista.setEstadoBCP("NEW");
 
         vista.setProcessID(this.process.getPCB().getPID());
@@ -236,6 +244,7 @@ public class MiniPCController {
         if (!validarParaEjecutar()) {
             return;
         }
+        tick();
 
         // Si el proceso es válido, vamos a ejecutarlo.
 
@@ -250,7 +259,7 @@ public class MiniPCController {
 
         saveRegistersIntoMemory();
         List<Object[]> memoryRows = this.memory.getAllMemoryRows();
-        vista.actualizarTablaMemoria(memoryRows, this.cpu.getPC() - (SystemConfig.getUserMemoryStart()-8)); // el segundo parámetro es para resaltar instrucción actual en la tabla de memoria
+        vista.actualizarTablaMemoria(memoryRows, this.cpu.getCurrentInstructionAddress()+1 - (SystemConfig.getUserMemoryStart()-SystemConfig.PCB_SIZE)); // el segundo parámetro es para resaltar instrucción actual en la tabla de memoria
 
         if (this.process.getPCB().getState() == ProcessState.EXIT) {
             validarParaEjecutar();
@@ -267,10 +276,25 @@ public class MiniPCController {
         if (!validarParaEjecutar()) {
             return;
         }
-        while (this.process.getPCB().getState() != ProcessState.EXIT) {
-            ejecutarPasoAPaso();
-        }
-        vista.setEstadoBCP("EXIT");
+
+        new Thread(() -> { // para poder actualizar GUI con delays
+            while (this.process.getPCB().getState() != ProcessState.EXIT) {
+                //time sleep
+                try {
+                    Thread.sleep(1000); // 1 segundo
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                ejecutarPasoAPaso();
+            }
+            javax.swing.SwingUtilities.invokeLater(() -> { // para asegurarse
+                if (this.process != null && this.process.getPCB().getState() == ProcessState.EXIT) {
+                    vista.setEstadoBCP("EXIT");
+                }
+            });
+        }).start();
+
+        
     }
 
     /**
@@ -286,6 +310,8 @@ public class MiniPCController {
         pcb.setBX(this.cpu.getBX());
         pcb.setCX(this.cpu.getCX());
         pcb.setDX(this.cpu.getDX());
+        pcb.setPSW(this.cpu.getPSW());
+        pcb.setStack(this.cpu.getStack());
 
         int pid = pcb.getPID();
         String state = pcb.getState().toString();
@@ -295,6 +321,17 @@ public class MiniPCController {
         int bx = pcb.getBX();
         int cx = pcb.getCX();
         int dx = pcb.getDX();
+
+        int psw = pcb.getPSW();
+
+        int cpu_id = pcb.getCpuID();
+        int start_time = pcb.getStartTime();
+        int spent_time = pcb.getTimeSpent();
+        int base_address = pcb.getStartPosition();
+        int size_scope = pcb.getSizeProcessScope();
+        int priority = pcb.getPriority();
+
+        Stack<Integer> stack = pcb.getStack();
 
         // pos memoria BCP
         int memoryPosition = pcb.getMemoryPosition();
@@ -306,6 +343,25 @@ public class MiniPCController {
         memory.setPosition(memoryPosition+5, new MemoryRegister("bcp_bx = " + bx, bx));
         memory.setPosition(memoryPosition+6, new MemoryRegister("bcp_cx = " + cx, cx));
         memory.setPosition(memoryPosition+7, new MemoryRegister("bcp_dx = " + dx, dx));
+        memory.setPosition(memoryPosition+8, new MemoryRegister("bcp_psw = " + psw, psw));
+        for (int i = 0; i < SystemConfig.STACK_SIZE; i++) {
+            if (i < stack.size()) {
+                memory.setPosition(memoryPosition + 9 + i, new MemoryRegister("bcp_stack[" + i + "] = " + stack.get(i), stack.get(i)));
+            } else {
+                memory.setPosition(memoryPosition + 9 + i, new MemoryRegister("bcp_stack[" + i + "] = 0", 0));
+            }
+        }
+        memory.setPosition(memoryPosition + 9 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_cpu_id = " + cpu_id, cpu_id));
+        memory.setPosition(memoryPosition + 10 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_start_time = " + start_time, start_time));
+        memory.setPosition(memoryPosition + 11 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_spent_time = " + spent_time, spent_time));
+        
+        memory.setPosition(memoryPosition + 12 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_opened_files = " + "null", 0)); //PENDIENTE
+        memory.setPosition(memoryPosition + 13 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_next_bcp = " + "null", 0));
+        memory.setPosition(memoryPosition + 14 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_base_address = " + base_address, base_address));
+        memory.setPosition(memoryPosition + 15 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_size_scope = " + size_scope, size_scope));
+
+        memory.setPosition(memoryPosition + 16 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_priority = " + priority, priority));
+        
         
         vista.setEstadoBCP(state);
 
@@ -352,6 +408,7 @@ public class MiniPCController {
      * Reinicia el sistema, limpiando la memoria y el CPU, y actualizando la vista.
      */
     private void reiniciarSistema() {
+        systemClock = 0;
         this.memory = null; //sacamos memoria vieja
         this.disk = null; //sacamos disco viejo
         this.cpu = null; //sacamos cpu vieja

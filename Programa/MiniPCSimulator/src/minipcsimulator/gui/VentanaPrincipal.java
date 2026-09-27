@@ -45,10 +45,11 @@ public class VentanaPrincipal extends JFrame {
     
     // Registros CPU y BCP
     private JTextField txtPC, txtIR, txtAC, txtAX, txtBX, txtCX, txtDX;
-    private JLabel lblEstadoBCP, lblProcessID;
+    private JLabel lblEstadoBCP, lblProcessID, lblTicks;
 
     // Estado del botón de configuración
     private boolean configuracionHabilitada = true;
+    private int ticksCount = 0;
 
     public VentanaPrincipal() {
         initComponents();
@@ -106,11 +107,16 @@ public class VentanaPrincipal extends JFrame {
 
         JPanel estadoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 10));
         estadoPanel.setOpaque(false);
+        
+        lblTicks = new JLabel("TICKS: " + ticksCount);
+        lblTicks.setForeground(TEXT_SECONDARY);
+        lblTicks.setFont(new Font("SansSerif", Font.BOLD, 12));
 
         JLabel estado = new JLabel("VERSIÓN 1.0");
         estado.setForeground(TEXT_SECONDARY);
         estado.setFont(new Font("SansSerif", Font.BOLD, 12));
 
+        estadoPanel.add(lblTicks);
         estadoPanel.add(estado);
 
         header.add(tituloPanel, BorderLayout.WEST);
@@ -778,6 +784,8 @@ public class VentanaPrincipal extends JFrame {
         setBX(0);
         setCX(0);
         setDX(0);
+        ticksCount = 0;
+        lblTicks.setText("TICKS: " + ticksCount);
     }
 
     // Getters y Setters
@@ -815,4 +823,5 @@ public class VentanaPrincipal extends JFrame {
     public void setBX(int valor) { txtBX.setText(String.valueOf(valor)); }
     public void setCX(int valor) { txtCX.setText(String.valueOf(valor)); }
     public void setDX(int valor) { txtDX.setText(String.valueOf(valor)); }
+    public void setTicks(int valor) { ticksCount = valor; lblTicks.setText("TICKS: " + ticksCount); }
 }

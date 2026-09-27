@@ -23,6 +23,7 @@ public class SystemConfig {
     //Para instrucciones y registros
     public static final int STACK_SIZE = 5;
     public static final int REGISTERS_COUNT = 4;
+    public static final int PCB_SIZE = 22;
 
     /**
      * Obtiene el tamaño total de la memoria del sistema.

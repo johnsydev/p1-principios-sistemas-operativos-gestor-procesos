@@ -37,6 +37,7 @@ public class PCB {
     // Posiciones en memoria
     private int memoryPosition;
     private int startPosition;
+    private int sizeProcessScope;
     private int endPosition;
     
     // Información del PCB
@@ -57,6 +58,10 @@ public class PCB {
 
     // Otros atributos
 
+    private int cpu_id = 0;
+    private int start_time = 0; // tick de tiempo de inicio del proceso
+    private int time_spent = 0; // tiempo total que ha estado en ejecución el proceso en ticks
+
     private int priority = 1; // por defecto 1 para todos durante este proyecto
     
     // al iniciar el proceso
@@ -70,7 +75,7 @@ public class PCB {
     public PCB(int id, int startPosition) {
         this.PID = 100+id;                            
         this.startPosition = startPosition;         // 4 es el tamaño fijo de PCB + cantidad de registros
-        this.memoryPosition = (SystemConfig.KERNEL_MEMORY_START + (id-1)) * (4 + SystemConfig.REGISTERS_COUNT);
+        this.memoryPosition = (SystemConfig.KERNEL_MEMORY_START + (id-1)) * (SystemConfig.PCB_SIZE);
         this.state = ProcessState.NEW;
         this.PC = startPosition;
         stack = new Stack();
@@ -81,6 +86,7 @@ public class PCB {
      * @param instructionsCount La cantidad de instrucciones del proceso.
      */
     public void configEndPosition(int instructionsCount) {
+        this.sizeProcessScope = instructionsCount;
         this.endPosition = startPosition + instructionsCount;
     }
 
@@ -90,6 +96,14 @@ public class PCB {
      */
     public int getStartPosition() {
         return startPosition;
+    }
+
+    /**
+     * Obtiene la cantidad de instrucciones del proceso.
+     * @return La cantidad de instrucciones del proceso.
+     */
+    public int getSizeProcessScope() {
+        return sizeProcessScope;
     }
 
     /**
@@ -182,7 +196,7 @@ public class PCB {
         this.DX = DX;
     }
 
-    public Stack getStack() {
+    public Stack<Integer> getStack() {
         return stack;
     }
 
@@ -200,6 +214,34 @@ public class PCB {
 
     public int getPriority() {
         return priority;
+    }
+
+    public void setCpuID(int cpu_id) {
+        this.cpu_id = cpu_id;
+    }
+
+    public int getCpuID() {
+        return cpu_id;
+    }
+
+    public int getStartTime() {
+        return start_time;
+    }
+
+    public void setStartTime(int start_time) {
+        this.start_time = start_time;
+    }
+
+    public int getTimeSpent() {
+        return time_spent;
+    }
+
+    public void setTimeSpent(int time_spent) {
+        this.time_spent = time_spent;
+    }
+
+    public void incrementTimeSpent() {
+        this.time_spent++;
     }
 
     public void setPriority(int priority) {

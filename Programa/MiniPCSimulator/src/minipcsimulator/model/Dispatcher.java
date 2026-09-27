@@ -15,5 +15,6 @@ public class Dispatcher {
         PCB pcb = process.getPCB();
         pcb.setState(PCB.ProcessState.RUNNING);
         cpu.setPCB(pcb);
+        pcb.setCpuID(cpu.getCpuID());
     }
 }
