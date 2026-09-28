@@ -21,7 +21,7 @@ public class Scheduler {
         return jobList.hasPendingJobs();
     }
 
-    public void checkAdmitJob(CPU cpu) {
+    public void checkAdmitJob() {
         while (jobList.hasPendingJobs()) {
             Job job = jobList.getNextJob();
             

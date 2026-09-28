@@ -28,6 +28,7 @@ import minipcsimulator.model.SystemClock;
 import minipcsimulator.model.JobList;
 import minipcsimulator.model.ProcessList;
 import minipcsimulator.model.Scheduler;
+import minipcsimulator.model.InterruptHandler;
 
 import minipcsimulator.services.AsmParser;
 import minipcsimulator.services.FileManager;
@@ -47,6 +48,7 @@ public class MiniPCController {
     private JobList jobList;
     private ProcessList processList;
     private Scheduler scheduler;
+    private InterruptHandler interruptHandler;
     // lista de procesos: [1, 0, 3, ...], los procesos en 0 terminaron y se pueden reemplazar
     // los que tienen número ese es su ID
 
@@ -58,11 +60,12 @@ public class MiniPCController {
         this.vista = new VentanaPrincipal();
         this.memory = new MainMemory();
         this.disk = new Disk();
-        this.cpu = new CPU(this.memory);
         this.systemClock = new SystemClock();
         this.jobList = new JobList();
         this.processList = new ProcessList(this.memory);
         this.scheduler = new Scheduler(this.jobList, this.processList, this.memory, this.disk, this.systemClock);
+        this.interruptHandler = new InterruptHandler(this.memory, this.processList, this.scheduler);
+        this.cpu = new CPU(this.memory, interruptHandler);
 
         actualizarVista();
         agregarListeners();
@@ -216,7 +219,7 @@ public class MiniPCController {
         //Loader.loadToMemory(this.process, this.memory, this.disk);
 
         //this.process.getPCB().setState(PCB.ProcessState.READY);
-        this.scheduler.checkAdmitJob(cpu);
+        this.scheduler.checkAdmitJob();
         //this.process = this.processList.getFirstProcess();
         vista.setEstadoBCP("READY");
 
@@ -284,23 +287,27 @@ public class MiniPCController {
         // Ejecutar la instrucción actual
         this.cpu.executeInstruction();
 
-        Dispatcher.saveContext(currentProcess, this.cpu, this.memory); // PENDIENTE, NO DEBERIA PERO PREGUNTAR A PROFE
-        actualizarVistaCPU();
-        List<Object[]> memoryRows = this.memory.getAllMemoryRows();
-        vista.actualizarTablaMemoria(memoryRows, this.cpu.getCurrentInstructionAddress()+1 - (SystemConfig.getUserMemoryStart()-SystemConfig.PCB_SIZE*this.processList.getProcessCount())); // el segundo parámetro es para resaltar instrucción actual en la tabla de memoria
+        
+        if (this.cpu.getPCB() == null || this.cpu.getPCB().getState() == ProcessState.EXIT) {
 
-        if (this.cpu.getPCB().getState() == ProcessState.EXIT) {
-
-            this.processList.removeProcess(currentProcess);
+            //this.processList.removeProcess(currentProcess.getPCB().getPID());
 
             // Admitir automáticamente el siguiente Job en espera si cabe en la RAM liberada
-            this.scheduler.checkAdmitJob(cpu);
+            this.scheduler.checkAdmitJob();
 
             // Actualizar vistas
             vista.actualizarTablaMemoria(this.memory.getAllMemoryRows(), -1);
             vista.actualizarTablaDisco(this.disk.getAllDiskRows().get(0));
+            actualizarVistaCPU();
 
             validarParaEjecutar();
+        }
+        else {
+            Dispatcher.saveContext(currentProcess, this.cpu, this.memory); // PENDIENTE, NO DEBERIA PERO PREGUNTAR A PROFE
+            actualizarVistaCPU();
+            List<Object[]> memoryRows = this.memory.getAllMemoryRows();
+            vista.actualizarTablaMemoria(memoryRows, this.cpu.getCurrentInstructionAddress()+1 - (SystemConfig.getUserMemoryStart()-SystemConfig.PCB_SIZE*this.processList.getProcessCount())); // el segundo parámetro es para resaltar instrucción actual en la tabla de memoria
+
         }
     }
 
@@ -372,7 +379,13 @@ public class MiniPCController {
         this.cpu = null; //sacamos cpu vieja
 
         this.memory = new MainMemory(); // ponemos memoria nueva
-        this.cpu = new CPU(this.memory); // ponemos cpu nueva
+
+        this.jobList = new JobList();
+        this.processList = new ProcessList(this.memory);
+        this.scheduler = new Scheduler(this.jobList, this.processList, this.memory, this.disk, this.systemClock);
+        this.interruptHandler = new InterruptHandler(this.memory, this.processList, this.scheduler);
+
+        this.cpu = new CPU(this.memory, this.interruptHandler); // ponemos cpu nueva
 
         System.out.println("Configuraciones aplicadas correctamente.");
         vista.mostrarInfo("Configuraciones aplicadas correctamente.");
@@ -388,15 +401,17 @@ public class MiniPCController {
         this.cpu = null; //sacamos cpu vieja
 
         this.memory = new MainMemory(); // ponemos memoria nueva
-        this.cpu = new CPU(this.memory); // ponemos cpu nueva
 
         this.disk = new Disk(); // ponemos disco nuevo
 
         // reescribimos las listas
         this.jobList = new JobList();
         this.processList = new ProcessList(this.memory);
-        
+
         this.scheduler = new Scheduler(this.jobList, this.processList, this.memory, this.disk, this.systemClock);
+        this.interruptHandler = new InterruptHandler(this.memory, this.processList, this.scheduler);
+
+        this.cpu = new CPU(this.memory, this.interruptHandler); // ponemos cpu nueva
 
 
         vista.limpiarVista();

@@ -78,6 +78,7 @@ public class CPU {
     private int cpu_id;
 
     private MainMemory memory;
+    private InterruptHandler interruptHandler;
     private PCB pcb;
 
     private int PC = 0;
@@ -103,10 +104,12 @@ public class CPU {
     /**
      * Constructor de la clase CPU.
      * @param memory La memoria principal del sistema.
+     * @param interruptHandler El manejador de interrupciones del sistema.
      */
-    public CPU(MainMemory memory) {
+    public CPU(MainMemory memory, InterruptHandler interruptHandler) {
         this.cpu_id = cpu_count++;
         this.memory = memory;
+        this.interruptHandler = interruptHandler;
     }
 
     /**
@@ -115,6 +118,10 @@ public class CPU {
      * @param pcb El PCB del proceso a ejecutar.
      */    
     public void setPCB(PCB pcb) {
+        if (pcb == null) {
+            clearPCB();
+            return;
+        }
         this.pcb = pcb;
 
         this.PC = pcb.getPC();
@@ -127,6 +134,18 @@ public class CPU {
         this.stack = pcb.getStack();
 
         this.PSW = pcb.getPSW();
+    }
+
+    public void clearPCB() {
+        this.pcb = null;
+        this.PC = 0;
+        this.AC = 0;
+        this.AX = 0;
+        this.BX = 0;
+        this.CX = 0;
+        this.DX = 0;
+        this.stack = null;
+        this.PSW = 0;
     }
 
     /**
@@ -642,7 +661,7 @@ public class CPU {
      */
     public void executeINT_20H() {
         System.out.println("Finalizando proceso " + pcb.getPID());
-        pcb.setState(PCB.ProcessState.EXIT); // REVISAR ESTO
+        interruptHandler.handleInterruptEXIT(this);
     }
 
     /**

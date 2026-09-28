@@ -62,8 +62,13 @@ public class ProcessList {
         memory.setPosition(memoryPosition + 16 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_priority = " + pcb.getPriority(), pcb.getPriority()));
     }
 
-    public void removeProcess(Process process) {
+    public void removeProcess(int pid) {
+        Process process = getProcessByPID(pid);
+        System.out.println("Proceso " + pid + " eliminado.");
+        System.out.println("Estado del proceso antes de eliminarlo: " + process.getPCB());
+        System.out.println("Lista de procesos: " + processList);
         processList.remove(process);
+        head = processList.isEmpty() ? null : processList.get(0);
 
         PCB pcb = process.getPCB();
         int pos_end = pcb.getStartPosition() + pcb.getSizeProcessScope();
@@ -75,6 +80,15 @@ public class ProcessList {
         for (int i = pcb.getMemoryPositionPCB(); i < pcb_end; i++) {
             memory.setPosition(i, null); // Limpia la memoria ocupada por el PCB
         }
+    }
+
+    private Process getProcessByPID(int pid) {
+        for (Process process : processList) {
+            if (process.getPCB().getPID() == pid) {
+                return process;
+            }
+        }
+        return null; // No se encontró el proceso con el PID especificado
     }
 
     public Process getFirstProcess() {
