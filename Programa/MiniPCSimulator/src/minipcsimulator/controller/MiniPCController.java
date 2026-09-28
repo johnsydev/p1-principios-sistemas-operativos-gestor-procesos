@@ -9,6 +9,7 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import java.util.Map;
 import minipcsimulator.gui.VentanaPrincipal;
 import minipcsimulator.model.CPU;
 import minipcsimulator.model.Dispatcher;
@@ -19,6 +20,7 @@ import minipcsimulator.model.MemoryRegister;
 import minipcsimulator.model.PCB;
 import minipcsimulator.model.PCB.ProcessState;
 import minipcsimulator.model.Process;
+import minipcsimulator.model.FileIndex;
 import minipcsimulator.services.AsmParser;
 import minipcsimulator.services.FileManager;
 import minipcsimulator.utils.SystemConfig;
@@ -130,9 +132,13 @@ public class MiniPCController {
             return;
         }
 
+        Map.Entry<String, ArrayList<String>> fileData;
+        String fileName;
         ArrayList<String> lines = new ArrayList<>();
         try {
-            lines = FileManager.loadFile();
+            fileData = FileManager.loadFile();
+            fileName = fileData.getKey();
+            lines = fileData.getValue();
         } catch (Exception exc) {
             vista.mostrarError(exc.getMessage());
             return;
@@ -174,7 +180,8 @@ public class MiniPCController {
         }
 
         this.process = new Process(assignedId, SystemConfig.getUserMemoryStart());
-        int startAddress = Loader.loadProgram(lines, asmArray, this.disk); // sin ponerlo en tabla
+        FileIndex fileIndex = new FileIndex(fileName, -1, asmArray.size());
+        int startAddress = Loader.loadProgram(lines, asmArray, this.disk, fileIndex); // sin ponerlo en tabla
 
         this.process.getPCB().setState(PCB.ProcessState.NEW);
         this.process.getPCB().setStartTime(systemClock); // tick de tiempo de inicio del proceso

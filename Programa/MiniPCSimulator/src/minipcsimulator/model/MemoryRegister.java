@@ -8,6 +8,7 @@ public class MemoryRegister {
     public String name;
     public int value;
     public Instruction instruction;
+    public FileIndex fileIndex;
 
     /**
      * Constructor manual de la clase MemoryRegister para registros de datos.
@@ -26,6 +27,14 @@ public class MemoryRegister {
      */
     public MemoryRegister(Instruction instruction) {
         this.instruction = instruction;
+    }
+
+    /**
+     * Constructor de la clase MemoryRegister para registros de índices de archivos para el disco (objeto FileIndex).
+     * @param fileIndex El índice de archivo que se almacenará en el registro de memoria.
+     */
+    public MemoryRegister(FileIndex fileIndex) {
+        this.fileIndex = fileIndex;
     }
 
     /**

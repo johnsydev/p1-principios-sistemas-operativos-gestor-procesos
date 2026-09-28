@@ -15,8 +15,11 @@ public class Loader {
      * @param asmArray Matriz de instrucciones del archivo .asm tratadas por el parser (divididas en partes separadas por comas).
      * @param process El proceso al que se le asignarán las instrucciones.
      * @param disk El disco donde se almacenarán los programas.
+     * @param fileIndex El índice del archivo que se almacenará en el disco.
+     * @return La dirección de inicio en el disco donde se almacenó el programa.
+     * @throws Exception Si no hay espacio libre suficiente en el disco para almacenar el programa.
      */
-    public static int loadProgram(ArrayList<String> lines, ArrayList<ArrayList<String>> asmArray, Disk disk) {
+    public static int loadProgram(ArrayList<String> lines, ArrayList<ArrayList<String>> asmArray, Disk disk, FileIndex fileIndex) {
         int i = 0;
         ArrayList<Instruction> instructions = new ArrayList<>();
         int freeSpaceAddress;
@@ -27,6 +30,7 @@ public class Loader {
         }
 
         int startAddress = freeSpaceAddress;
+        fileIndex.setStartPosition(startAddress);
 
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
@@ -39,6 +43,13 @@ public class Loader {
             freeSpaceAddress++;
             // Para GUI
             i++;
+        }
+
+        try {
+            int posIndex = getFreeSpaceInFileIndex(disk);
+            disk.setFileIndex(posIndex, fileIndex);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al almacenar el índice del archivo en el disco: " + e.getMessage());
         }
         return startAddress;
     }
@@ -63,7 +74,7 @@ public class Loader {
             for (int i = position; i < position + size; i++) {
                 Instruction instruction = disk.getInstruction(startAddressDisk);
                 memory.setPositionInstruction(i, instruction);
-                
+
                 instructions.add(instruction);
                 startAddressDisk++;
             }
@@ -109,10 +120,19 @@ public class Loader {
         }
 
         // Si después de recorrer todo el disco no se encontró un bloque contiguo suficiente
-        throw new Exception("No hay espacio libre contiguo suficiente en el Disco Virtual. " +
+        throw new Exception("No hay espacio libre contiguo suficiente en el Disco. " +
                             "Se requerían " + size + " celdas libres.");
     }
 
+    /**
+     * Busca un bloque continuo de celdas libres en la Memoria Principal (RAM) a partir de la
+     * dirección reservada para programas de usuario.
+     * 
+     * @param size Cantidad de instrucciones consecutivas que requiere el programa.
+     * @param memory La Memoria Principal donde se buscará el espacio libre.
+     * @return La dirección de memoria RAM donde inicia el espacio libre encontrado.
+     * @throws Exception Si la memoria está llena o no hay un bloque contiguo del tamaño requerido.
+     */
     public static int getFreeSpaceInMemory(int size, MainMemory memory) throws Exception {
         int startAddress = SystemConfig.getUserMemoryStart();
         int totalMemorySize = SystemConfig.getMemorySize();
@@ -142,5 +162,29 @@ public class Loader {
         // Si después de recorrer toda la memoria no se encontró un bloque contiguo suficiente
         throw new Exception("No hay espacio libre contiguo suficiente en la Memoria Principal. " +
                             "Se requerían " + size + " celdas libres.");
+    }
+
+    /**
+     * Busca un espacio libre en el disco para almacenar un índice de archivo.
+     * @param disk El disco donde se buscará el espacio libre.
+     * @return La dirección de memoria del disco donde se puede almacenar el índice de archivo.
+     * @throws Exception Si no hay espacio libre en el disco para almacenar el índice de archivo.
+     */
+    public static int getFreeSpaceInFileIndex(Disk disk) throws Exception {
+        int startAddress = 0;
+        int totalSpaceForIndex = SystemConfig.getStartDiskForPrograms();
+
+        int consecutiveFree = 0;
+        int index = -1;
+
+        for (int i = startAddress; i < totalSpaceForIndex; i++) {
+            // Verificamos si la celda actual en el disco está libre
+            if (disk.getPosition(i) == null) {
+                return i; // marca el inicio si no hatten uno
+            }
+        }
+        
+        // Si después de recorrer todo el disco no se encontró un bloque contiguo suficiente
+        throw new Exception("No hay espacio libre en el Disco para índices de archivos.");
     }
 }

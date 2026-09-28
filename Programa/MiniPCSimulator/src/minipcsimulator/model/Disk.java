@@ -57,6 +57,28 @@ public class Disk {
     }
 
     /**
+     * Función para recuperar un índice de archivo del disco.
+     * @param address La posición de memoria desde donde se recuperará el índice de archivo.
+     * @return El objeto FileIndex almacenado en la posición del disco especificada.
+     */
+    public FileIndex getFileIndex(int address) {
+        MemoryRegister memReg = disk[address];
+        if (memReg != null) {
+            return memReg.fileIndex;
+        }
+        return null;
+    }
+
+    /**
+     * Función para almacenar un índice de archivo en el disco.
+     * @param address La posición de memoria donde se almacenará el índice de archivo.
+     * @param fileIndex El objeto FileIndex que se almacenará en el disco.
+     */
+    public void setFileIndex(int address, FileIndex fileIndex) {
+        disk[address] = new MemoryRegister(fileIndex);
+    }
+
+    /**
      * Función para obtener todas las posiciones del disco y sus valores, que se utiliza para mostrar en la GUI (tabla de disco y memoria virtual).
      * @return Una lista con dos listas: 
      *          - La primera contiene las posiciones del disco para programas y archivos, cada una con su valor correspondiente.
@@ -75,7 +97,9 @@ public class Disk {
                 }
                 if (memr.instruction != null) {
                     mVirtualList.add(new Object[] {i, memr.instruction.getOriginalInstructionText()});
-                } else {
+                } else if (memr.fileIndex != null) {
+                    mVirtualList.add(new Object[] {i, memr.fileIndex.toString()});
+                } else{
                     mVirtualList.add(new Object[] {i, memr.getName()});
                 }
                 i++;
@@ -88,6 +112,8 @@ public class Disk {
                 }
                 if (memr.instruction != null) {
                     diskList.add(new Object[] {i, memr.instruction.getOriginalInstructionText()});
+                } else if (memr.fileIndex != null) {
+                    diskList.add(new Object[] {i, memr.fileIndex.toString()});
                 } else {
                     diskList.add(new Object[] {i, memr.getName()});
                 }
