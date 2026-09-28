@@ -62,6 +62,8 @@ public class PCB {
     private int start_time = 0; // tick de tiempo de inicio del proceso
     private int time_spent = 0; // tiempo total que ha estado en ejecución el proceso en ticks
 
+    private PCB nextPCB; // referencia al siguiente PCB en la lista enlazada de PCBs
+
     private int priority = 1; // por defecto 1 para todos durante este proyecto
     
     // DISCO
@@ -267,5 +269,13 @@ public class PCB {
 
     public void setPriority(int priority) {
         this.priority = priority;
+    }
+
+    public void setNextPCB(PCB nextPCB) {
+        this.nextPCB = nextPCB;
+    }
+
+    public PCB getNextPCB() {
+        return nextPCB;
     }
 }

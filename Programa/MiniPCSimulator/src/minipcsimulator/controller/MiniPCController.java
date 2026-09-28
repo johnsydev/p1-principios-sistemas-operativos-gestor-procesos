@@ -10,7 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 import java.util.Map;
+
 import minipcsimulator.gui.VentanaPrincipal;
+
 import minipcsimulator.model.CPU;
 import minipcsimulator.model.Dispatcher;
 import minipcsimulator.model.Loader;
@@ -21,6 +23,12 @@ import minipcsimulator.model.PCB;
 import minipcsimulator.model.PCB.ProcessState;
 import minipcsimulator.model.Process;
 import minipcsimulator.model.FileIndex;
+import minipcsimulator.model.Job;
+import minipcsimulator.model.SystemClock;
+import minipcsimulator.model.JobList;
+import minipcsimulator.model.ProcessList;
+import minipcsimulator.model.Scheduler;
+
 import minipcsimulator.services.AsmParser;
 import minipcsimulator.services.FileManager;
 import minipcsimulator.utils.SystemConfig;
@@ -34,10 +42,12 @@ public class MiniPCController {
     private VentanaPrincipal vista;
     private MainMemory memory;
     private Disk disk;
-    private Process process;
     private CPU cpu;
     private ArrayList<Integer> listProcessMemory = new ArrayList<>();
-    private int systemClock = 0;
+    private SystemClock systemClock;
+    private JobList jobList;
+    private ProcessList processList;
+    private Scheduler scheduler;
     // lista de procesos: [1, 0, 3, ...], los procesos en 0 terminaron y se pueden reemplazar
     // los que tienen número ese es su ID
 
@@ -50,6 +60,10 @@ public class MiniPCController {
         this.memory = new MainMemory();
         this.disk = new Disk();
         this.cpu = new CPU(this.memory);
+        this.systemClock = new SystemClock();
+        this.jobList = new JobList();
+        this.processList = new ProcessList();
+        this.scheduler = new Scheduler(this.jobList, this.processList, this.memory, this.disk, this.systemClock);
 
         actualizarVista();
         agregarListeners();
@@ -59,8 +73,8 @@ public class MiniPCController {
     }
 
     private void tick() {
-        systemClock++;
-        vista.setTicks(systemClock);
+        systemClock.tick();
+        vista.setTicks(systemClock.getTicks());
     }
     
     /**
@@ -127,17 +141,19 @@ public class MiniPCController {
      * Genera la tabla de instrucciones en la GUI
      */
     private void seleccionarArchivo() {
-        if (this.process != null) {
+        if (this.cpu.getPCB() != null) {
             vista.mostrarError("Ya hay un programa cargado. Debe finalizarlo y limpiar el sistema antes de cargar otro.");
             return;
         }
 
-        Map.Entry<String, ArrayList<String>> fileData;
+        Map.Entry<ArrayList<String>, ArrayList<String>> fileData;
+        String filePath;
         String fileName;
         ArrayList<String> lines = new ArrayList<>();
         try {
             fileData = FileManager.loadFile();
-            fileName = fileData.getKey();
+            filePath = fileData.getKey().get(0);
+            fileName = fileData.getKey().get(1);
             lines = fileData.getValue();
         } catch (Exception exc) {
             vista.mostrarError(exc.getMessage());
@@ -168,6 +184,7 @@ public class MiniPCController {
 
         // Aquí se hace el proceso y las instrucciones se cargan, sin RAM aún
 
+        /* 
         int zeroIndex = listProcessMemory.indexOf(0); 
         int assignedId;
 
@@ -180,16 +197,26 @@ public class MiniPCController {
         }
 
         this.process = new Process(assignedId, SystemConfig.getUserMemoryStart());
-        FileIndex fileIndex = new FileIndex(fileName, -1, asmArray.size());
-        int startAddress = Loader.loadProgram(lines, asmArray, this.disk, fileIndex); // sin ponerlo en tabla
+        
 
-        this.process.getPCB().setState(PCB.ProcessState.NEW);
-        this.process.getPCB().setStartTime(systemClock); // tick de tiempo de inicio del proceso
-        this.process.getPCB().setDiskStartPosition(startAddress);
-        this.process.getPCB().setDiskProgramSize(asmArray.size());
+        
         vista.setEstadoBCP("NEW");
 
         vista.setProcessID(this.process.getPCB().getPID());
+        vista.deshabilitarConfiguraciones();
+        ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
+        vista.actualizarTablaDisco(diskLists.get(0));
+        vista.actualizarTablaMemoriaVirtual(diskLists.get(1));
+        */
+
+        FileIndex fileIndex = new FileIndex(fileName, -1, asmArray.size());
+        int startAddress = Loader.loadProgram(lines, asmArray, this.disk, fileIndex); // sin ponerlo en tabla
+
+        Job job = new Job(filePath, fileName, lines, asmArray);
+        job.setDiskStartAddress(startAddress);
+
+        this.jobList.addJob(job);
+
         vista.deshabilitarConfiguraciones();
         ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
         vista.actualizarTablaDisco(diskLists.get(0));
@@ -201,18 +228,22 @@ public class MiniPCController {
      * Estado del proceso READY
      */
     private void cargarPrograma() {
-        if (this.process == null) {
+        if (!this.scheduler.hasPendingJobs()) {
             vista.mostrarError("No hay un programa cargado. Seleccione un archivo .asm primero.");
             return;
         }
+        /*
         if (this.process.getPCB().getState() != PCB.ProcessState.NEW) {
             vista.mostrarError("El programa ya ha sido cargado en memoria. No se puede cargar nuevamente.");
             return;
         }
+             */
 
-        Loader.loadToMemory(this.process, this.memory, this.disk);
+        //Loader.loadToMemory(this.process, this.memory, this.disk);
 
-        this.process.getPCB().setState(PCB.ProcessState.READY);
+        //this.process.getPCB().setState(PCB.ProcessState.READY);
+        this.scheduler.checkAdmitJob();
+        //this.process = this.processList.getFirstProcess();
         vista.setEstadoBCP("READY");
 
         List<Object[]> memoryRows = this.memory.getAllMemoryRows();
@@ -225,20 +256,20 @@ public class MiniPCController {
      * @return true si el proceso está en un estado válido para ejecutar, false de lo contrario.
      */
     private boolean validarParaEjecutar() {
-        if (this.process == null) {
+        if (this.cpu.getPCB() == null) {
             vista.mostrarError("No hay un programa cargado. Seleccione un archivo .asm primero.");
             return false;
         }
-        else if (this.process.getPCB().getState() == ProcessState.EXIT) {
+        else if (this.cpu.getPCB().getState() == ProcessState.EXIT) {
             vista.setEstadoBCP("EXIT");
             vista.mostrarError("El proceso ya ha terminado. Seleccione un nuevo archivo .asm para cargar otro programa.");
             return false;
         }
-        else if (this.process.getPCB().getState() == ProcessState.NEW) {
+        else if (this.cpu.getPCB().getState() == ProcessState.NEW) {
             vista.mostrarError("El proceso aún no ha sido cargado en memoria. Cargue el programa primero.");
             return false;
         }
-        else if (this.process.getPCB().getState() == ProcessState.BLOCKED) {
+        else if (this.cpu.getPCB().getState() == ProcessState.BLOCKED) {
             vista.mostrarError("El proceso está bloqueado. No se puede ejecutar hasta que se desbloquee.");
             return false;
         }
@@ -253,13 +284,23 @@ public class MiniPCController {
         if (!validarParaEjecutar()) {
             return;
         }
+
         tick();
 
         // Si el proceso es válido, vamos a ejecutarlo.
 
+        Process currentProcess = this.processList.getFirstProcess();
+
+
+        if (currentProcess == null) {
+            vista.mostrarError("No hay un programa cargado. Seleccione un archivo .asm primero.");
+            vista.setEstadoBCP("EXIT"); // PENDIENTE
+            return;
+        }
+
         // Para ejecutar primer paso se debe llamar al dispatcher
-        if (this.process.getPCB().getState() == ProcessState.READY) {
-            Dispatcher.dispatch(this.process, this.cpu);
+        if (currentProcess.getPCB().getState() == ProcessState.READY) {
+            Dispatcher.dispatch(currentProcess, this.cpu);
             vista.setEstadoBCP("RUNNING");
         }
 
@@ -270,7 +311,17 @@ public class MiniPCController {
         List<Object[]> memoryRows = this.memory.getAllMemoryRows();
         vista.actualizarTablaMemoria(memoryRows, this.cpu.getCurrentInstructionAddress()+1 - (SystemConfig.getUserMemoryStart()-SystemConfig.PCB_SIZE)); // el segundo parámetro es para resaltar instrucción actual en la tabla de memoria
 
-        if (this.process.getPCB().getState() == ProcessState.EXIT) {
+        if (this.cpu.getPCB().getState() == ProcessState.EXIT) {
+
+            this.processList.removeProcess(procesoActual.getPCB().getPID());
+
+            // Admitir automáticamente el siguiente Job en espera si cabe en la RAM liberada
+            this.scheduler.checkAdmitJob();
+
+            // Actualizar vistas tras la liberación de RAM
+            vista.actualizarTablaMemoria(this.memory.getAllMemoryRows(), -1);
+            vista.actualizarTablaDisco(this.disk.getAllDiskRows().get(0));
+
             validarParaEjecutar();
         }
     }
@@ -287,7 +338,7 @@ public class MiniPCController {
         }
 
         new Thread(() -> { // para poder actualizar GUI con delays
-            while (this.process.getPCB().getState() != ProcessState.EXIT) {
+            while (this.cpu.getPCB().getState() != ProcessState.EXIT) {
                 //time sleep
                 try {
                     Thread.sleep(1000); // 1 segundo
@@ -297,7 +348,7 @@ public class MiniPCController {
                 ejecutarPasoAPaso();
             }
             javax.swing.SwingUtilities.invokeLater(() -> { // para asegurarse
-                if (this.process != null && this.process.getPCB().getState() == ProcessState.EXIT) {
+                if (this.cpu.getPCB() != null && this.cpu.getPCB().getState() == ProcessState.EXIT) {
                     vista.setEstadoBCP("EXIT");
                 }
             });
@@ -312,7 +363,7 @@ public class MiniPCController {
      * Estado del proceso RUNNING
      */
     private void saveRegistersIntoMemory() {
-        PCB pcb = this.process.getPCB();
+        PCB pcb = this.cpu.getPCB();
         pcb.setPC(this.cpu.getPC());
         pcb.setAC(this.cpu.getAC());
         pcb.setAX(this.cpu.getAX());
@@ -417,7 +468,7 @@ public class MiniPCController {
      * Reinicia el sistema, limpiando la memoria y el CPU, y actualizando la vista.
      */
     private void reiniciarSistema() {
-        systemClock = 0;
+        systemClock.reset();
         this.memory = null; //sacamos memoria vieja
         this.disk = null; //sacamos disco viejo
         this.cpu = null; //sacamos cpu vieja
@@ -427,7 +478,7 @@ public class MiniPCController {
 
         this.disk = new Disk(); // ponemos disco nuevo
 
-        this.process = null; // sacamos proceso viejo
+
         listProcessMemory.clear(); // limpiamos lista de procesos
 
         vista.limpiarVista();

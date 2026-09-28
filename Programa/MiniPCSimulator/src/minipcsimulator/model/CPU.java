@@ -777,4 +777,8 @@ public class CPU {
     public int getCurrentInstructionAddress() {
         return currentInstructionAddress;
     }
+
+    public PCB getPCB() {
+        return pcb;
+    }
 }

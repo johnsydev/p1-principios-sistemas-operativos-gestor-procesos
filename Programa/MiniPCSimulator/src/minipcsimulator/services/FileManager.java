@@ -17,7 +17,7 @@ public class FileManager {
      * Carga un archivo .asm y devuelve sus líneas como un ArrayList de Strings.
      * @return Un ArrayList de Strings con las líneas del archivo .asm.
      */
-    public static Map.Entry<String, ArrayList<String>> loadFile() {
+    public static Map.Entry<ArrayList<String>, ArrayList<String>> loadFile() {
         return openFileExplorer();
     }
 
@@ -25,7 +25,7 @@ public class FileManager {
      * Abre el explorador de archivos y devuelve las líneas del archivo seleccionado como un ArrayList de Strings.
      * @return Un ArrayList de Strings con las líneas del archivo seleccionado.
      */
-    private static Map.Entry<String, ArrayList<String>> openFileExplorer() {
+    private static Map.Entry<ArrayList<String>, ArrayList<String>> openFileExplorer() {
         JFileChooser fileChooser = new JFileChooser();
         int result = fileChooser.showOpenDialog(null);
         
@@ -34,7 +34,10 @@ public class FileManager {
             if (!isValidExtension(file.getAbsolutePath())) {
                 throw new RuntimeException("El archivo seleccionado no tiene la extensión .asm.");
             }
-            return Map.entry(file.getName(), readFileLines(file));
+            ArrayList<String> fileData = new ArrayList<>();
+            fileData.add(file.getAbsolutePath());
+            fileData.add(file.getName());
+            return Map.entry(fileData, readFileLines(file));
         } else {
             throw new RuntimeException("No se seleccionó ningún archivo.");
         }
