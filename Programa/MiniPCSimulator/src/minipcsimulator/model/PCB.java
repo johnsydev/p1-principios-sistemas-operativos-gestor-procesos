@@ -35,7 +35,7 @@ public class PCB {
     }
 
     // Posiciones en memoria
-    private int memoryPosition;
+    private int memoryPositionPCB; // posición en memoria del PCB
     private int startPosition;
     private int sizeProcessScope;
     private int endPosition;
@@ -82,7 +82,7 @@ public class PCB {
     public PCB(int id, int startPosition) {
         this.PID = 100+id;                            
         this.startPosition = startPosition;         // 4 es el tamaño fijo de PCB + cantidad de registros
-        this.memoryPosition = (SystemConfig.KERNEL_MEMORY_START + (id-1)) * (SystemConfig.PCB_SIZE);
+        this.memoryPositionPCB = (SystemConfig.KERNEL_MEMORY_START + (id-1)) * (SystemConfig.PCB_SIZE);
         this.state = ProcessState.NEW;
         this.PC = startPosition;
         stack = new Stack();
@@ -157,8 +157,8 @@ public class PCB {
      * Obtiene la posición en memoria del proceso.
      * @return La posición en memoria del proceso.
      */
-    public int getMemoryPosition() {
-        return memoryPosition;
+    public int getMemoryPositionPCB() {
+        return memoryPositionPCB;
     }
 
     /**

@@ -21,7 +21,7 @@ public class Scheduler {
         return jobList.hasPendingJobs();
     }
 
-    public void checkAdmitJob() {
+    public void checkAdmitJob(CPU cpu) {
         while (jobList.hasPendingJobs()) {
             Job job = jobList.getNextJob();
             
@@ -46,6 +46,9 @@ public class Scheduler {
                 Loader.loadToMemory(process, memory, disk);
 
                 processList.addProcess(process);
+                jobList.removeNextJob();
+                //Dispatcher.saveContext(process, cpu, memory); // PENDIENTE, NO DEBERIA PERO PREGUNTAR A PROFE
+
             }
         }
     }
