@@ -1,6 +1,7 @@
 package minipcsimulator.model;
 
 import java.util.ArrayList;
+import minipcsimulator.model.Process.ProcessState;
 
 /**
  * Clase que representa un proceso en el sistema operativo simulado.
@@ -8,8 +9,41 @@ import java.util.ArrayList;
  */
 public class Process {
 
+        // Estados del proceso posibles
+    public enum ProcessState {
+        NEW("NEW"), //al seleccionar el archivo
+        READY("READY"), //al cargar el programa a memoria (sin suspensión)
+        READY_SUSPENDED("READY_SUSPENDED"), //al suspenderlo
+        RUNNING("RUNNING"), //al ejecutarlo
+        BLOCKED("BLOCKED"), //esperando I/O (sin suspensión)
+        BLOCKED_SUSPENDED("BLOCKED_SUSPENDED"), //al bloquearlo por espera de I/O y suspenderlo
+        EXIT("EXIT"); //al terminar de ejecutarse
+
+        private final String displayName;
+
+        ProcessState(String displayName) {
+            this.displayName = displayName;
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
+
+        public boolean isSuspended() {
+            return this == READY_SUSPENDED || this == BLOCKED_SUSPENDED;
+        }
+    }
+
     private ArrayList<Instruction> instructions;
     private PCB pcb;
+    private ProcessState state;
+
+    private int pid;
+
+    // Esto es para interfaz
+    String pathFile;
+    String nameFile;
 
     // al iniciar el proceso
 
@@ -20,8 +54,9 @@ public class Process {
      * @param startPosition La posición de memoria donde inicia el proceso en la memoria principal (RAM).
      */
     public Process(int id, int startPosition) {
+        this.pid = id;
         this.instructions = new ArrayList<>(); //vacía esperando a Loader
-        this.pcb = new PCB(id, startPosition);
+        this.pcb = new PCB(this, startPosition);
     }
 
     /**
@@ -48,5 +83,30 @@ public class Process {
      */
     public PCB getPCB() {
         return pcb;
+    }
+
+    public void setFilePathAndName(String path, String name) {
+        this.pathFile = path;
+        this.nameFile = name;
+    }
+
+    public String getPathFile() {
+        return pathFile;
+    }
+
+    public String getNameFile() {
+        return nameFile;
+    }
+
+    public void setState(ProcessState state) {
+        this.state = state;
+    }
+
+    public ProcessState getState() {
+        return state;
+    }
+
+    public int getPID() {
+        return pid;
     }
 }

@@ -20,7 +20,7 @@ import minipcsimulator.model.MainMemory;
 import minipcsimulator.model.Disk;
 import minipcsimulator.model.MemoryRegister;
 import minipcsimulator.model.PCB;
-import minipcsimulator.model.PCB.ProcessState;
+import minipcsimulator.model.Process.ProcessState;
 import minipcsimulator.model.Process;
 import minipcsimulator.model.FileIndex;
 import minipcsimulator.model.Job;
@@ -193,6 +193,7 @@ public class MiniPCController {
         job.setDiskStartAddress(startAddress);
 
         this.jobList.addJob(job);
+        actualizarVistaListaProcesos();
 
         vista.deshabilitarConfiguraciones();
         ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
@@ -210,7 +211,7 @@ public class MiniPCController {
             return;
         }
         /*
-        if (this.process.getPCB().getState() != PCB.ProcessState.NEW) {
+        if (this.process.getPCB().getState() != Process.ProcessState.NEW) {
             vista.mostrarError("El programa ya ha sido cargado en memoria. No se puede cargar nuevamente.");
             return;
         }
@@ -218,10 +219,11 @@ public class MiniPCController {
 
         //Loader.loadToMemory(this.process, this.memory, this.disk);
 
-        //this.process.getPCB().setState(PCB.ProcessState.READY);
+        //this.process.getPCB().setState(Process.ProcessState.READY);
         this.scheduler.checkAdmitJob();
         //this.process = this.processList.getFirstProcess();
         vista.setEstadoBCP("READY");
+        actualizarVistaListaProcesos();
 
         List<Object[]> memoryRows = this.memory.getAllMemoryRows();
         vista.actualizarTablaMemoria(memoryRows, -1);
@@ -279,9 +281,10 @@ public class MiniPCController {
         }
 
         // Para ejecutar primer paso se debe llamar al dispatcher
-        if (currentProcess.getPCB().getState() == ProcessState.READY) {
+        if (currentProcess.getState() == ProcessState.READY) {
             Dispatcher.dispatch(currentProcess, this.cpu);
             vista.setEstadoBCP("RUNNING");
+            actualizarVistaListaProcesos();
         }
 
         // Ejecutar la instrucción actual
@@ -294,6 +297,7 @@ public class MiniPCController {
 
             // Admitir automáticamente el siguiente Job en espera si cabe en la RAM liberada
             this.scheduler.checkAdmitJob();
+            actualizarVistaListaProcesos();
 
             // Actualizar vistas
             vista.actualizarTablaMemoria(this.memory.getAllMemoryRows(), -1);
@@ -419,5 +423,15 @@ public class MiniPCController {
 
         System.out.println("Sistema reiniciado correctamente.");
         vista.mostrarInfo("Sistema reiniciado correctamente.");
+    }
+
+    private void actualizarVistaListaProcesos() {
+        List<Object[]> tableDataJob = this.jobList.getTableData();
+        List<Object[]> tableDataProcess = this.processList.getTableData();
+        List<Object[]> tableDataFinal = new ArrayList<>();
+        tableDataFinal.addAll(tableDataProcess);
+        tableDataFinal.addAll(tableDataJob);
+
+        vista.actualizarTablaTrabajos(tableDataFinal);
     }
 }

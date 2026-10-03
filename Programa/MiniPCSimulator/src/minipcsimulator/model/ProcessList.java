@@ -1,11 +1,13 @@
 package minipcsimulator.model;
 
 import java.util.ArrayList;
+import java.util.List;
 import minipcsimulator.utils.SystemConfig;
 
 public class ProcessList {
     Process head;
     ArrayList<Process> processList = new ArrayList<>();
+    ArrayList<Process> deletedProcesses = new ArrayList<>();
     private MainMemory memory;
 
     public ProcessList(MainMemory memory) {
@@ -29,7 +31,7 @@ public class ProcessList {
 
         // Escribir BCP Inicial en la RAM 
         memory.setPosition(memoryPosition, new MemoryRegister("bcp_pid = " + pcb.getPID(), pcb.getPID()));
-        memory.setPosition(memoryPosition + 1, new MemoryRegister("bcp_state = READY", PCB.ProcessState.READY.ordinal()));
+        memory.setPosition(memoryPosition + 1, new MemoryRegister("bcp_state = READY", Process.ProcessState.READY.ordinal()));
         memory.setPosition(memoryPosition + 2, new MemoryRegister("bcp_pc = " + pcb.getStartPosition(), pcb.getStartPosition()));
         memory.setPosition(memoryPosition + 3, new MemoryRegister("bcp_ac = 0", 0));
         memory.setPosition(memoryPosition + 4, new MemoryRegister("bcp_ax = 0", 0));
@@ -67,6 +69,7 @@ public class ProcessList {
         System.out.println("Proceso " + pid + " eliminado.");
         System.out.println("Estado del proceso antes de eliminarlo: " + process.getPCB());
         System.out.println("Lista de procesos: " + processList);
+        deletedProcesses.add(process);
         processList.remove(process);
         head = processList.isEmpty() ? null : processList.get(0);
 
@@ -101,5 +104,26 @@ public class ProcessList {
 
     public int getProcessCount() {
         return processList.size();
+    }
+
+    public List<Object[]> getTableData() {
+        List<Object[]> tableData = new ArrayList<>();
+        for (Process dProcess : deletedProcesses) {
+            Object[] rowData = new Object[]{
+                dProcess.getPID(),
+                dProcess.getNameFile(),
+                dProcess.getState(),
+            };
+            tableData.add(rowData);
+        }
+        for (Process process : processList) {
+            Object[] rowData = new Object[]{
+                process.getPID(),
+                process.getNameFile(),
+                process.getState(),
+            };
+            tableData.add(rowData);
+        }
+        return tableData;
     }
 }

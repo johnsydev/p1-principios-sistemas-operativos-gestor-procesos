@@ -1,7 +1,5 @@
 package minipcsimulator.model;
 
-import minipcsimulator.utils.SystemConfig;
-
 public class InterruptHandler {
     MainMemory memory;
     ProcessList processList;
@@ -21,7 +19,7 @@ public class InterruptHandler {
             return;
         }
 
-        cpu.getPCB().setState(PCB.ProcessState.EXIT);
+        cpu.getPCB().setState(Process.ProcessState.EXIT);
 
         // Eliminar el proceso de la lista de procesos
         processList.removeProcess(currentProcess.getPCB().getPID());

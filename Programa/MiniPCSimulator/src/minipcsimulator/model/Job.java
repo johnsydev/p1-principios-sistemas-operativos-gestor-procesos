@@ -1,9 +1,10 @@
 package minipcsimulator.model;
 
 import java.util.ArrayList;
+import minipcsimulator.utils.SystemConfig;
 
 public class Job {
-    private static int nextPID = 1;
+    private static int nextPID = SystemConfig.FIRST_PROCESS_ID;
 
     String pathFile; //ruta
     String nameFile;
@@ -41,5 +42,9 @@ public class Job {
             assignedPID = nextPID++;
         }
         return assignedPID;
+    }
+
+    public String getNameFile() {
+        return nameFile;
     }
 }

@@ -37,8 +37,9 @@ public class Scheduler {
 
                 // vamos a hacer el proceso
                 Process process = new Process(job.getAssignedPID(), memoryStartAddress);
+                process.setFilePathAndName(job.pathFile, job.nameFile);
 
-                process.getPCB().setState(PCB.ProcessState.READY);
+                process.getPCB().setState(Process.ProcessState.READY);
                 process.getPCB().setStartTime(systemClock.getTicks()); // tick de tiempo de inicio del proceso
                 process.getPCB().setDiskStartPosition(job.getDiskStartAddress());
                 process.getPCB().setDiskProgramSize(job.getSize());

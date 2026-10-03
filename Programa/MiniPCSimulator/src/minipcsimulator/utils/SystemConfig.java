@@ -25,6 +25,8 @@ public class SystemConfig {
     public static final int REGISTERS_COUNT = 4;
     public static final int PCB_SIZE = 22;
 
+    public static final int FIRST_PROCESS_ID = 101; // Primer PID
+
     /**
      * Obtiene el tamaño total de la memoria del sistema.
      * @return El tamaño total de la memoria del sistema.

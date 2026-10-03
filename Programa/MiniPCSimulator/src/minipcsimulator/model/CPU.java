@@ -1,7 +1,7 @@
 package minipcsimulator.model;
 
-import java.util.Stack;
 import java.util.ArrayList;
+import java.util.Stack;
 import minipcsimulator.utils.SystemConfig;
 
 /**
@@ -160,7 +160,7 @@ public class CPU {
         } else {
             // de momento el profe no puso instrucción de END, entonces se asume
             // que si se sale del rango de memoria del proceso, es porque terminó
-            pcb.setState(PCB.ProcessState.EXIT);
+            pcb.setState(Process.ProcessState.EXIT);
             System.out.println("Proceso " + pcb.getPID() + " ha terminado.");
         }
     }
@@ -568,7 +568,7 @@ public class CPU {
             this.PC = newPC;
         } else {
             System.out.println("Error: Dirección de salto fuera del rango del proceso (Segmentation Fault).");
-            pcb.setState(PCB.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
+            pcb.setState(Process.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
         }
     }
 
@@ -618,7 +618,7 @@ public class CPU {
         for (Integer param : params) {
             if (stack.size() >= SystemConfig.STACK_SIZE) {
                 System.out.println("Error: Stack Overflow. No se puede hacer PARAM, la pila está llena.");
-                pcb.setState(PCB.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
+                pcb.setState(Process.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
                 return;
             }
             stack.push(param);
@@ -634,7 +634,7 @@ public class CPU {
         int value = getRegisterValue(register);
         if (stack.size() >= SystemConfig.STACK_SIZE) {
             System.out.println("Error: Stack Overflow. No se puede hacer PUSH, la pila está llena.");
-            pcb.setState(PCB.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
+            pcb.setState(Process.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
             return;
         }
         stack.push(value);
@@ -648,7 +648,7 @@ public class CPU {
     public void executePOP(OpCode register) {
         if (stack.isEmpty()) {
             System.out.println("Error: Stack Underflow. No se puede hacer POP, la pila está vacía.");
-            pcb.setState(PCB.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
+            pcb.setState(Process.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
             return;
         }
         int value = stack.pop();

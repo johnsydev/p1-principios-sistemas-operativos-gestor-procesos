@@ -2,6 +2,7 @@ package minipcsimulator.model;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 public class JobList {
@@ -28,5 +29,18 @@ public class JobList {
 
     public ArrayList<Job> getAllJobs() {
         return allJobs;
+    }
+
+    public List<Object[]> getTableData() {
+        List<Object[]> tableData = new ArrayList<>();
+        for (Job job : pendingJobs) {
+            Object[] rowData = new Object[]{
+                job.getAssignedPID(),
+                job.getNameFile(),
+                "NEW"
+            };
+            tableData.add(rowData);
+        }
+        return tableData;
     }
 }

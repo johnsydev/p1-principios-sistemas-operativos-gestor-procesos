@@ -1,6 +1,7 @@
 package minipcsimulator.model;
 
 import java.util.Stack;
+import minipcsimulator.model.Process.ProcessState;
 import minipcsimulator.utils.SystemConfig;
 
 /**
@@ -8,31 +9,8 @@ import minipcsimulator.utils.SystemConfig;
  */
 public class PCB {
 
-    // Estados del proceso posibles
-    public enum ProcessState {
-        NEW("NEW"), //al seleccionar el archivo
-        READY("READY"), //al cargar el programa a memoria (sin suspensión)
-        READY_SUSPENDED("READY_SUSPENDED"), //al suspenderlo
-        RUNNING("RUNNING"), //al ejecutarlo
-        BLOCKED("BLOCKED"), //esperando I/O (sin suspensión)
-        BLOCKED_SUSPENDED("BLOCKED_SUSPENDED"), //al bloquearlo por espera de I/O y suspenderlo
-        EXIT("EXIT"); //al terminar de ejecutarse
-
-        private final String displayName;
-
-        ProcessState(String displayName) {
-            this.displayName = displayName;
-        }
-
-        @Override
-        public String toString() {
-            return displayName;
-        }
-
-        public boolean isSuspended() {
-            return this == READY_SUSPENDED || this == BLOCKED_SUSPENDED;
-        }
-    }
+    // Referencia al proceso padre
+    private Process ownerProcess; 
 
     // Posiciones en memoria
     private int memoryPositionPCB; // posición en memoria del PCB
@@ -79,10 +57,11 @@ public class PCB {
      * @param id El identificador del proceso (número simple que inicia en 1 y es asignado por el Kernel).
      * @param startPosition La posición de inicio en memoria del proceso.
      */
-    public PCB(int id, int startPosition) {
-        this.PID = 100+id;                            
+    public PCB(Process ownerProcess, int startPosition) {
+        this.ownerProcess = ownerProcess;
+        this.PID = ownerProcess.getPID();                            
         this.startPosition = startPosition;         // 4 es el tamaño fijo de PCB + cantidad de registros
-        this.memoryPositionPCB = (SystemConfig.KERNEL_MEMORY_START + (id-1)) * (SystemConfig.PCB_SIZE);
+        this.memoryPositionPCB = (SystemConfig.KERNEL_MEMORY_START + (this.PID-SystemConfig.FIRST_PROCESS_ID)) * (SystemConfig.PCB_SIZE);
         this.state = ProcessState.NEW;
         this.PC = startPosition;
         stack = new Stack();
@@ -146,14 +125,6 @@ public class PCB {
     }
 
     /**
-     * Obtiene el estado actual del proceso.
-     * @return El estado actual del proceso.
-     */
-    public ProcessState getState() {
-        return state;
-    }
-
-    /**
      * Obtiene la posición en memoria del proceso.
      * @return La posición en memoria del proceso.
      */
@@ -166,7 +137,22 @@ public class PCB {
      * @param state El nuevo estado del proceso.
      */
     public void setState(ProcessState state) {
-        this.state = state;
+        if (ownerProcess != null) {
+            ownerProcess.setState(state);
+        }
+    }
+
+    /**
+     * Obtiene el estado actual del proceso.
+     * @return El estado actual del proceso.
+     */
+    public ProcessState getState() {
+        if (ownerProcess != null) {
+            ProcessState state = ownerProcess.getState();
+            this.state = state;
+            return state;
+        }
+        return ProcessState.NEW;
     }
 
     // Getters / Setters para registros:
