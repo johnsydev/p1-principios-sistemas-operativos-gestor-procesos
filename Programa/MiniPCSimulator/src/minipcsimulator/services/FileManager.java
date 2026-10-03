@@ -4,9 +4,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-
 import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 /**
  * Clase que se encarga de manejar la carga de archivos .asm.
@@ -17,7 +18,7 @@ public class FileManager {
      * Carga un archivo .asm y devuelve sus líneas como un ArrayList de Strings.
      * @return Un ArrayList de Strings con las líneas del archivo .asm.
      */
-    public static Map.Entry<ArrayList<String>, ArrayList<String>> loadFile() {
+    public static List<Map.Entry<ArrayList<String>, ArrayList<String>>> loadFiles() {
         return openFileExplorer();
     }
 
@@ -25,19 +26,37 @@ public class FileManager {
      * Abre el explorador de archivos y devuelve las líneas del archivo seleccionado como un ArrayList de Strings.
      * @return Un ArrayList de Strings con las líneas del archivo seleccionado.
      */
-    private static Map.Entry<ArrayList<String>, ArrayList<String>> openFileExplorer() {
+    private static List<Map.Entry<ArrayList<String>, ArrayList<String>>> openFileExplorer() {
         JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setMultiSelectionEnabled(true);
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos Ensamblador (*.asm)", "asm"));
+
+
         int result = fileChooser.showOpenDialog(null);
         
         if (result == JFileChooser.APPROVE_OPTION) {
-            java.io.File file = fileChooser.getSelectedFile();
-            if (!isValidExtension(file.getAbsolutePath())) {
-                throw new RuntimeException("El archivo seleccionado no tiene la extensión .asm.");
+            java.io.File[] files = fileChooser.getSelectedFiles();
+            
+            if (files == null || files.length == 0) {
+                throw new RuntimeException("No se seleccionó ningún archivo.");
             }
-            ArrayList<String> fileData = new ArrayList<>();
-            fileData.add(file.getAbsolutePath());
-            fileData.add(file.getName());
-            return Map.entry(fileData, readFileLines(file));
+
+            List<Map.Entry<ArrayList<String>, ArrayList<String>>> filesData = new ArrayList<>();
+
+            for (java.io.File file : files) {
+                if (!isValidExtension(file.getAbsolutePath())) {
+                    throw new RuntimeException("El archivo " + file.getName() + " no tiene la extensión .asm.");
+                }
+                
+                ArrayList<String> fileData = new ArrayList<>();
+                fileData.add(file.getAbsolutePath());
+                fileData.add(file.getName());
+
+                ArrayList<String> lines = readFileLines(file);
+                filesData.add(Map.entry(fileData, lines));
+            }
+            
+            return filesData;
         } else {
             throw new RuntimeException("No se seleccionó ningún archivo.");
         }

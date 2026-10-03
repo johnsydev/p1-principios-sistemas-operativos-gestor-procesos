@@ -2,7 +2,6 @@ package minipcsimulator.model;
 
 import java.util.Stack;
 import minipcsimulator.model.Process.ProcessState;
-import minipcsimulator.utils.SystemConfig;
 
 /**
  * Clase que representa el PCB (Process Control Block) de un proceso en el sistema operativo simulado.
@@ -56,12 +55,13 @@ public class PCB {
      * Inicializa el PCB con el ID del proceso (los procesos inician en 100) y la posición de inicio en memoria.
      * @param id El identificador del proceso (número simple que inicia en 1 y es asignado por el Kernel).
      * @param startPosition La posición de inicio en memoria del proceso.
+     * @param pcbStartAddress La posición de inicio en memoria del PCB.
      */
-    public PCB(Process ownerProcess, int startPosition) {
+    public PCB(Process ownerProcess, int startPosition, int pcbStartAddress) {
         this.ownerProcess = ownerProcess;
         this.PID = ownerProcess.getPID();                            
         this.startPosition = startPosition;         // 4 es el tamaño fijo de PCB + cantidad de registros
-        this.memoryPositionPCB = (SystemConfig.KERNEL_MEMORY_START + (this.PID-SystemConfig.FIRST_PROCESS_ID)) * (SystemConfig.PCB_SIZE);
+        this.memoryPositionPCB = pcbStartAddress; //(SystemConfig.KERNEL_MEMORY_START + (this.PID-SystemConfig.FIRST_PROCESS_ID)) * (SystemConfig.PCB_SIZE);
         this.state = ProcessState.NEW;
         this.PC = startPosition;
         stack = new Stack();

@@ -88,7 +88,7 @@ public class MiniPCController {
         vista.getBtnSeleccionar().addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                seleccionarArchivo();
+                seleccionarArchivos();
             }
         });
 
@@ -137,23 +137,12 @@ public class MiniPCController {
         
     }
 
-    /**
-     * Esto abre el cuadro de diálogo para seleccionar un archivo .asm, lo carga y verifica su sintaxis.
-     * Genera el proceso (estado NEW)
-     * Genera la tabla de instrucciones en la GUI
-     */
-    private void seleccionarArchivo() {
-        if (this.cpu.getPCB() != null) {
-            vista.mostrarError("Ya hay un programa cargado. Debe finalizarlo y limpiar el sistema antes de cargar otro.");
-            return;
-        }
-
-        Map.Entry<ArrayList<String>, ArrayList<String>> fileData;
+    private void procesarArchivo(Map.Entry<ArrayList<String>, ArrayList<String>> fileData) {
         String filePath;
         String fileName;
         ArrayList<String> lines = new ArrayList<>();
         try {
-            fileData = FileManager.loadFile();
+            
             filePath = fileData.getKey().get(0);
             fileName = fileData.getKey().get(1);
             lines = fileData.getValue();
@@ -172,12 +161,12 @@ public class MiniPCController {
         }
 
         if (asmArray.isEmpty()) {
-            vista.mostrarError("El archivo está vacío o no contiene instrucciones válidas.");
+            vista.mostrarError("El archivo + " + fileName + " está vacío o no contiene instrucciones válidas.");
             return;
         }
 
         if (asmArray.size() > SystemConfig.getUserMemorySize()) {
-            vista.mostrarError("El programa ingresado es demasiado grande para la memoria disponible. Tamaño máximo permitido: " + SystemConfig.getUserMemorySize() + " instrucciones.");
+            vista.mostrarError("El programa " + fileName + " ingresado es demasiado grande para la memoria disponible. Tamaño máximo permitido: " + SystemConfig.getUserMemorySize() + " instrucciones.");
             return;
         }
 
@@ -199,6 +188,24 @@ public class MiniPCController {
         ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
         vista.actualizarTablaDisco(diskLists.get(0));
         vista.actualizarTablaMemoriaVirtual(diskLists.get(1));
+    }
+
+    /**
+     * Esto abre el cuadro de diálogo para seleccionar un archivo .asm, lo carga y verifica su sintaxis.
+     * Genera el proceso (estado NEW)
+     * Genera la tabla de instrucciones en la GUI
+     */
+    private void seleccionarArchivos() {
+        if (this.cpu.getPCB() != null) {
+            vista.mostrarError("Ya hay un programa cargado. Debe finalizarlo y limpiar el sistema antes de cargar otro.");
+            return;
+        }
+
+        List<Map.Entry<ArrayList<String>, ArrayList<String>>> filesData = FileManager.loadFiles();
+
+        for (Map.Entry<ArrayList<String>, ArrayList<String>> fileData : filesData) {
+            procesarArchivo(fileData);
+        }
     }
 
     /**

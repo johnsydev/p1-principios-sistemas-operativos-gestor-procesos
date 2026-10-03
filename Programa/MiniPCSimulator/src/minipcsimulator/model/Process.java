@@ -52,11 +52,12 @@ public class Process {
      * Crea el proceso y su PCB.
      * @param id El identificador del proceso a crear, es un int simple que inicia en 1 que lo asigna el Kernel.
      * @param startPosition La posición de memoria donde inicia el proceso en la memoria principal (RAM).
+     * @param pcbStartAddress La posición de inicio en memoria del PCB.
      */
-    public Process(int id, int startPosition) {
+    public Process(int id, int startPosition, int pcbStartAddress) {
         this.pid = id;
         this.instructions = new ArrayList<>(); //vacía esperando a Loader
-        this.pcb = new PCB(this, startPosition);
+        this.pcb = new PCB(this, startPosition, pcbStartAddress);
     }
 
     /**

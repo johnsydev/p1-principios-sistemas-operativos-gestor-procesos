@@ -27,6 +27,8 @@ public class SystemConfig {
 
     public static final int FIRST_PROCESS_ID = 101; // Primer PID
 
+    public static final int MAX_PROCESSES_IN_MEMORY = 5; // Límite máximo de procesos en memoria al mismo tiempo
+
     /**
      * Obtiene el tamaño total de la memoria del sistema.
      * @return El tamaño total de la memoria del sistema.

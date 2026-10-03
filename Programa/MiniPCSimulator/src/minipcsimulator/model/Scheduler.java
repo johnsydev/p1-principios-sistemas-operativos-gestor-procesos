@@ -23,20 +23,26 @@ public class Scheduler {
 
     public void checkAdmitJob() {
         while (jobList.hasPendingJobs()) {
+            if (processList.getProcessCount() >= SystemConfig.MAX_PROCESSES_IN_MEMORY) {
+                System.out.println("No se pueden admitir más procesos en memoria. Se alcanzó el límite máximo de procesos.");
+                return;
+            }
+
             Job job = jobList.getNextJob();
-            
 
             if (job != null) {
                 int memoryStartAddress = SystemConfig.getUserMemoryStart();
+                int pcbStartAddress = SystemConfig.KERNEL_MEMORY_START;
                 try {
                     memoryStartAddress = Loader.getFreeSpaceInMemory(job.getSize(), memory);
+                    pcbStartAddress = Loader.getFreeSpaceInMemoryForPCB(memory);
                 } catch (Exception e) {
                     System.out.println("Error al admitir el trabajo: " + e.getMessage());
                     return;
                 }
 
                 // vamos a hacer el proceso
-                Process process = new Process(job.getAssignedPID(), memoryStartAddress);
+                Process process = new Process(job.getAssignedPID(), memoryStartAddress, pcbStartAddress);
                 process.setFilePathAndName(job.pathFile, job.nameFile);
 
                 process.getPCB().setState(Process.ProcessState.READY);
