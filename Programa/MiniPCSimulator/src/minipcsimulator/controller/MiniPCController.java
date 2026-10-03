@@ -8,28 +8,23 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
 import java.util.Map;
-
+import javax.swing.JButton;
 import minipcsimulator.gui.VentanaPrincipal;
-
 import minipcsimulator.model.CPU;
+import minipcsimulator.model.Disk;
 import minipcsimulator.model.Dispatcher;
+import minipcsimulator.model.FileIndex;
+import minipcsimulator.model.InterruptHandler;
+import minipcsimulator.model.Job;
+import minipcsimulator.model.JobList;
 import minipcsimulator.model.Loader;
 import minipcsimulator.model.MainMemory;
-import minipcsimulator.model.Disk;
-import minipcsimulator.model.MemoryRegister;
-import minipcsimulator.model.PCB;
-import minipcsimulator.model.Process.ProcessState;
 import minipcsimulator.model.Process;
-import minipcsimulator.model.FileIndex;
-import minipcsimulator.model.Job;
-import minipcsimulator.model.SystemClock;
-import minipcsimulator.model.JobList;
+import minipcsimulator.model.Process.ProcessState;
 import minipcsimulator.model.ProcessList;
 import minipcsimulator.model.Scheduler;
-import minipcsimulator.model.InterruptHandler;
-
+import minipcsimulator.model.SystemClock;
 import minipcsimulator.services.AsmParser;
 import minipcsimulator.services.FileManager;
 import minipcsimulator.utils.SystemConfig;
@@ -72,13 +67,42 @@ public class MiniPCController {
 
         // Muestra GUI
         this.vista.setVisible(true);
+        abrirConfiguracion();
     }
 
     private void tick() {
         systemClock.tick();
         vista.setTicks(systemClock.getTicks());
     }
-    
+
+    private void abrirConfiguracion() {
+        vista.mostrarPanelConfig(false);
+        System.out.println("Abriendo panel de configuración...");
+
+        JButton btnGuardar = vista.getBtnGuardarConfig();
+
+        if (btnGuardar == null) {
+            return;
+        }
+
+        for (ActionListener listener : btnGuardar.getActionListeners()) {
+            btnGuardar.removeActionListener(listener);
+        }
+
+        btnGuardar.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Guardando configuraciones...");
+                aplicarConfiguraciones();
+                if (vista.getDialogConfig() != null) {
+                    vista.getDialogConfig().dispose();
+                }
+            }
+        });
+
+        vista.mostrarPanelConfig(true);
+    }
+
     /**
      * Agrega los listeners a los botones de la GUI para manejar las acciones del usuario.
      * Cuando se presiona un botón en la UI, se ejecuta la acción que se defina en esta sección.
@@ -117,10 +141,10 @@ public class MiniPCController {
         });
 
         // Botón para aplicar las configuraciones de memoria principal y espacio de kernel
-        vista.getBtnAplicarConfig().addActionListener(new ActionListener() {
+        vista.getBtnAbrirConfig().addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                aplicarConfiguraciones();
+                abrirConfiguracion();
             }
         });
 
@@ -374,8 +398,11 @@ public class MiniPCController {
      * Aplica las configuraciones seleccionadas por el usuario.
      */
     private void aplicarConfiguraciones() {
+        System.out.println("CONFIGURANDO...");
         int memorySize = vista.getTamanoMemoriaSeleccionado();
         int kernelSize = vista.getLimiteKernelSeleccionado();
+        int diskSize = vista.getTamanoDiscoSeleccionado();
+        int virtualSize = vista.getTamanoVirtualSeleccionado();
 
         if (memorySize <= 0 || kernelSize < 0 || kernelSize >= memorySize || kernelSize < SystemConfig.USER_MEMORY_START_MIN 
             || memorySize > SystemConfig.MEMORY_SIZE_MAX || memorySize < SystemConfig.MEMORY_SIZE_MIN || kernelSize > SystemConfig.MEMORY_SIZE_MAX-16) {
@@ -385,11 +412,15 @@ public class MiniPCController {
 
         SystemConfig.setMemorySize(memorySize);
         SystemConfig.setUserMemoryStart(kernelSize);
+        SystemConfig.setDiskSize(diskSize);
+        SystemConfig.setDiskMemoryVirtualSize(virtualSize);
 
         this.memory = null; //sacamos memoria vieja
         this.cpu = null; //sacamos cpu vieja
+        this.disk = null; //sacamos disco viejo
 
         this.memory = new MainMemory(); // ponemos memoria nueva
+        this.disk = new Disk(); // ponemos disco nuevo
 
         this.jobList = new JobList();
         this.processList = new ProcessList(this.memory);
@@ -426,6 +457,7 @@ public class MiniPCController {
 
 
         vista.limpiarVista();
+        vista.getDialogConfig().dispose();
         vista.habilitarConfiguraciones();
 
         System.out.println("Sistema reiniciado correctamente.");

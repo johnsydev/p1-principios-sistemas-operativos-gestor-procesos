@@ -19,7 +19,11 @@ public class SystemConfig {
     // Separación con Kernel
     public static final int KERNEL_MEMORY_START = 0;
     public static final int USER_MEMORY_START_MIN = 16; // lo más mínimo
-    
+
+    //DISCO
+    public static final int DISK_SIZE_MIN = 256; //minimo según enunci
+    public static final int DISK_SIZE_MAX = 65536;
+
     //Para instrucciones y registros
     public static final int STACK_SIZE = 5;
     public static final int REGISTERS_COUNT = 4;
@@ -45,12 +49,30 @@ public class SystemConfig {
         return diskSize;
     }
 
+    public static int getDiskMemoryVirtualSize() {
+        return diskMemoryVirtualSize;
+    }
+
     /**
      * Obtiene la posición de inicio de la memoria de usuario.
      * @return La posición de inicio de la memoria de usuario.
      */
     public static int getUserMemoryStart() {
         return userMemoryStart;
+    }
+
+    public static void setDiskSize(int diskSize) {
+        if (diskSize < DISK_SIZE_MIN || diskSize > DISK_SIZE_MAX) {
+            throw new IllegalArgumentException("El tamaño de disco debe estar entre " + DISK_SIZE_MIN + " y " + DISK_SIZE_MAX);
+        }
+        SystemConfig.diskSize = diskSize;
+    }
+
+    public static void setDiskMemoryVirtualSize(int diskMemoryVirtualSize) {
+        if (diskMemoryVirtualSize < 32 || diskMemoryVirtualSize > diskSize-32) {
+            throw new IllegalArgumentException("El tamaño de memoria virtual del disco no puede ser menor a 32 ni mayor a " + (diskSize-32)); //PENDIENTE
+        }
+        SystemConfig.diskMemoryVirtualSize = diskMemoryVirtualSize;
     }
 
     /**

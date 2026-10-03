@@ -32,8 +32,10 @@ public class VentanaPrincipal extends JFrame {
 
     // Componentes de la interfaz
     private JButton btnSeleccionar, btnCargar, btnPasoAPaso, btnEjecutar, btnLimpiar;
-    private JButton btnAbrirConfig;
+    private JButton btnAbrirConfig, btnGuardarConfig;
     private JSpinner spTamanoMemoria, spLimiteKernel, spTamanoDisco, spTamanoVirtual;
+
+    private JDialog dialogConfig;
     
     // Tablas
     private JTable tablaMemoria, tablaDisco, tablaVirtual, tablaTrabajos;
@@ -164,7 +166,6 @@ public class VentanaPrincipal extends JFrame {
 
         // Botón para abrir el diálogo modal de configuración
         btnAbrirConfig = crearBoton("⚙ Configuración", GRAY);
-        btnAbrirConfig.addActionListener(e -> abrirDialogoConfiguracion());
         panelPrincipal.add(btnAbrirConfig);
 
         return panelPrincipal;
@@ -175,7 +176,7 @@ public class VentanaPrincipal extends JFrame {
      * Obliga al usuario a Guardar o Cancelar sin poder cerrar libremente la ventana.
      */
     private void abrirDialogoConfiguracion() {
-        JDialog dialogConfig = new JDialog(this, "Configuración de Sistema", true);
+        dialogConfig = new JDialog(this, "Configuración de Sistema", true);
         dialogConfig.setSize(340, 420);
         dialogConfig.setResizable(false);
         dialogConfig.setLocationRelativeTo(this);
@@ -244,34 +245,25 @@ public class VentanaPrincipal extends JFrame {
         estilitarBotonSecundario(btnCancelar);
         btnCancelar.addActionListener(e -> dialogConfig.dispose());
 
-        JButton btnGuardar = new JButton("Guardar");
-        btnGuardar.setPreferredSize(new Dimension(100, 32));
-        btnGuardar.setForeground(Color.WHITE);
-        btnGuardar.setFont(new Font("SansSerif", Font.BOLD, 12));
-        btnGuardar.setFocusPainted(false);
-        btnGuardar.setBorderPainted(false);
-        btnGuardar.putClientProperty(
+        btnGuardarConfig = new JButton("Guardar");
+        btnGuardarConfig.setPreferredSize(new Dimension(100, 32));
+        btnGuardarConfig.setForeground(Color.WHITE);
+        btnGuardarConfig.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btnGuardarConfig.setFocusPainted(false);
+        btnGuardarConfig.setBorderPainted(false);
+        btnGuardarConfig.putClientProperty(
                 FlatClientProperties.STYLE,
                 "background: " + convertirColor(BLUE) + "; foreground: #FFFFFF; font: bold;"
         );
 
-        btnGuardar.addActionListener(e -> {
-            // Aplicar configuraciones globalmente a SystemConfig
-            SystemConfig.setMemorySize((int) spTamanoMemoria.getValue());
-            SystemConfig.setUserMemoryStart((int) spLimiteKernel.getValue());
-            
-            mostrarInfo("Configuración guardada correctamente.");
-            dialogConfig.dispose();
-        });
-
         panelBotones.add(btnCancelar);
-        panelBotones.add(btnGuardar);
+        panelBotones.add(btnGuardarConfig);
 
         panelModal.add(cardRAM, BorderLayout.CENTER);
         panelModal.add(panelBotones, BorderLayout.SOUTH);
 
         dialogConfig.setContentPane(panelModal);
-        dialogConfig.setVisible(true);
+        //dialogConfig.setVisible(true);
     }
 
     // Crea el panel central con memorias y consola
@@ -788,6 +780,16 @@ public class VentanaPrincipal extends JFrame {
         lblTicks.setText("TICKS: " + ticksCount);
     }
 
+    public void mostrarPanelConfig(boolean mostrar) {
+        if (dialogConfig == null) {
+            abrirDialogoConfiguracion();
+        }
+        
+        if (mostrar) {
+            dialogConfig.setVisible(true);
+        }
+    }
+
     // Getters y Setters
     public JButton getBtnSeleccionar() { return btnSeleccionar; }
     public JButton getBtnCargar() { return btnCargar; }
@@ -795,11 +797,15 @@ public class VentanaPrincipal extends JFrame {
     public JButton getBtnEjecutar() { return btnEjecutar; }
     public JButton getBtnLimpiar() { return btnLimpiar; }
     public JButton getBtnAbrirConfig() { return btnAbrirConfig; }
+    public JButton getBtnGuardarConfig() { return btnGuardarConfig; }
+
+    public JDialog getDialogConfig() { return dialogConfig; }
 
     // Métodos delegados para mantener la compatibilidad con MiniPCController
-    public JButton getBtnAplicarConfig() { return btnAbrirConfig; }
     public int getTamanoMemoriaSeleccionado() { return spTamanoMemoria != null ? (int) spTamanoMemoria.getValue() : SystemConfig.getMemorySize(); }
     public int getLimiteKernelSeleccionado() { return spLimiteKernel != null ? (int) spLimiteKernel.getValue() : SystemConfig.getUserMemoryStart(); }
+    public int getTamanoDiscoSeleccionado() { return spTamanoDisco != null ? (int) spTamanoDisco.getValue() : SystemConfig.getDiskSize(); }
+    public int getTamanoVirtualSeleccionado() { return spTamanoVirtual != null ? (int) spTamanoVirtual.getValue() : SystemConfig.getDiskMemoryVirtualSize(); }
 
     public DefaultTableModel getModeloTablaMemoria() { return modeloTablaMemoria; }
     public DefaultTableModel getModeloTablaDisco() { return modeloTablaDisco; }
