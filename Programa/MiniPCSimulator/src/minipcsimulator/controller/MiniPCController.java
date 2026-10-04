@@ -67,6 +67,7 @@ public class MiniPCController {
 
         // Muestra GUI
         this.vista.setVisible(true);
+        vista.getTxtTeclado().setEnabled(false);
         abrirConfiguracion();
     }
 
@@ -153,6 +154,43 @@ public class MiniPCController {
             @Override
             public void actionPerformed(ActionEvent e) {
                 reiniciarSistema();
+            }
+        });
+
+        vista.getTxtTeclado().addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String textoIngresado = vista.getTxtTeclado().getText().trim();
+                
+                if (textoIngresado.isEmpty()) {
+                    return;
+                }
+
+                // buscar proceso blocked
+                Process procesoBloqueado = processList.getFirstProcess(); //siempre va a ser el primero en este proyecto
+
+                if (procesoBloqueado != null) {
+                    try {
+                        int valor = Integer.parseInt(textoIngresado);
+                        interruptHandler.handleInterruptIOInput(procesoBloqueado, valor);
+
+                        vista.getTxtPantalla().append("> " + valor + "\n");
+
+                        vista.getTxtTeclado().setEnabled(false);
+
+                    } catch (NumberFormatException ex) {
+                        vista.mostrarError("Debe ingresar un número entero válido.");
+                        return;
+                    }
+                } else {
+                    //vista.getTxtPantalla().append("> " + textoIngresado + "\n");
+                    vista.mostrarError("No hay un proceso bloqueado esperando entrada.");
+                    return;
+                }
+
+                vista.getTxtTeclado().setText("");
+                actualizarVistaListaProcesos();
+                actualizarVistaCPU();
             }
         });
     }
@@ -321,6 +359,20 @@ public class MiniPCController {
         // Ejecutar la instrucción actual
         this.cpu.executeInstruction();
 
+        // Input
+        if (currentProcess.getState() == ProcessState.BLOCKED) {
+            actualizarVistaListaProcesos();
+            actualizarVistaCPU();
+            vista.getTxtTeclado().setEnabled(true);
+            vista.getTxtTeclado().requestFocusInWindow();
+            return;
+        }
+
+        // Output
+        if (this.interruptHandler.hasPendingOutput()) {
+            vista.getTxtPantalla().append(this.interruptHandler.clearBufferOutput());
+        }
+
         
         if (this.cpu.getPCB() == null || this.cpu.getPCB().getState() == ProcessState.EXIT) {
 
@@ -357,24 +409,30 @@ public class MiniPCController {
             return;
         }
 
-        new Thread(() -> { // para poder actualizar GUI con delays
-            while (this.cpu.getPCB().getState() != ProcessState.EXIT) {
-                //time sleep
+        new Thread(() -> {
+            boolean hasActiveProcess = true;
+
+            while (hasActiveProcess) {
+                javax.swing.SwingUtilities.invokeLater(() -> ejecutarPasoAPaso()); //pendiebte de antes o despues de sleep
+
                 try {
                     Thread.sleep(1000); // 1 segundo
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    break;
                 }
-                ejecutarPasoAPaso();
-            }
-            javax.swing.SwingUtilities.invokeLater(() -> { // para asegurarse
-                if (this.cpu.getPCB() != null && this.cpu.getPCB().getState() == ProcessState.EXIT) {
-                    vista.setEstadoBCP("EXIT");
-                }
-            });
-        }).start();
 
-        
+                if (this.cpu.getPCB() == null || this.cpu.getPCB().getState() == ProcessState.EXIT) {
+                    if (!this.processList.hasProcesses()) {
+                        hasActiveProcess = false;
+                    }
+                }
+            }
+
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                vista.setEstadoBCP("EXIT");
+            });
+        }).start(); 
     }
 
     private void actualizarVistaCPU() {

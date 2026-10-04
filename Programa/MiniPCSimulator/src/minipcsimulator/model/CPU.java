@@ -23,7 +23,7 @@ public class CPU {
         SWAP(8, "INSTRUCTION", 1),
         INT_20H(9, "INSTRUCTION", 2),
         INT_10H(10, "INSTRUCTION", 2),
-        INT_09H(11, "INSTRUCTION", 0), //peso depende
+        INT_09H(11, "INSTRUCTION", 1), //peso depende
         INT_21H(12, "INSTRUCTION", 5),
         JMP(13, "INSTRUCTION", 2),
         CMP(14, "INSTRUCTION", 2),
@@ -173,9 +173,11 @@ public class CPU {
         // se obtienen los datos de la instrucción actual
         String instructionType = IR.getInstructionType();
         if (instructionType.equals("INT")) {
-            instructionType += "_" + IR.getOperand(0);
-            System.out.println(instructionType);
+            String op = IR.getOperand(0).toUpperCase().trim();
+            if (op.equals("9H")) op = "09H";
+            instructionType = "INT_" + op;
         }
+        System.out.println("CPU: Ejecutando instrucción " + instructionType + " con operandos: " + IR.getOperands());
         OpCode opcode = OpCode.getByCode(instructionType);
 
         
@@ -665,48 +667,25 @@ public class CPU {
     }
 
     /**
-     * Devuelve el mensaje de salida del proceso.
-     * @return El mensaje de salida del proceso.
-     */
-    public String getOutputMessage() {
-        System.out.println(this.outputMessages);
-        String output = this.outputMessages;
-        this.outputMessages = "";
-        this.hasPendingOutput = false;
-        return output;
-    }
-
-    //Para output:
-
-    /**
-     * Indica si hay mensajes de salida pendientes del proceso.
-     * @return true si hay mensajes de salida pendientes, false en caso contrario.
-     */
-    public boolean hasPendingOutput() {
-        return this.hasPendingOutput;
-    }
-
-    /**
-     * Imprime un mensaje en la consola y lo agrega a los mensajes de salida del proceso.
-     * @param message El mensaje a imprimir y agregar a los mensajes de salida del proceso.
-     */
-    public void printToConsole(String message) {
-        System.out.println(message);
-        this.outputMessages += message + "\n";
-        this.hasPendingOutput = true;
-    }
-
-    /**
      * Ejecuta la instrucción INT 10H.
      * Esta instrucción se utiliza para realizar una operación específica.
      */
     public void executeINT_10H() {
-        printToConsole("" + DX);
+        interruptHandler.handleInterruptIO(this, "OUTPUT");
     }
 
     //input
     public void executeINT_09H() {
-        // PENDIENTE
+        if (pcb != null) {
+            pcb.setPC(this.PC);
+            pcb.setAC(this.AC);
+            pcb.setAX(this.AX);
+            pcb.setBX(this.BX);
+            pcb.setCX(this.CX);
+            pcb.setDX(this.DX);
+            pcb.setPSW(this.PSW);
+        }
+        interruptHandler.handleInterruptIO(this, "INPUT");
     }
 
     // file manager
@@ -727,8 +706,9 @@ public class CPU {
 
             String instructionType = IR.getInstructionType();
             if (instructionType.equals("INT")) {
-                instructionType += "_" + IR.getOperand(0);
-                System.out.println(instructionType);
+                String op = IR.getOperand(0).toUpperCase().trim();
+                if (op.equals("9H")) op = "09H";
+                instructionType = "INT_" + op;
             }
             OpCode opcode = OpCode.getByCode(instructionType);
 
