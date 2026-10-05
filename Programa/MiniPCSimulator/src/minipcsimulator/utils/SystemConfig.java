@@ -18,6 +18,7 @@ public class SystemConfig {
 
     // Separación con Kernel
     public static final int KERNEL_MEMORY_START = 0;
+    public static final int PCB_MEMORY_START = 32;
     public static final int USER_MEMORY_START_MIN = 16; // lo más mínimo
 
     //DISCO

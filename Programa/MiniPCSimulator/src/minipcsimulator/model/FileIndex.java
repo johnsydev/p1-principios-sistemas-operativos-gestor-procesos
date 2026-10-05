@@ -7,6 +7,7 @@ public class FileIndex {
     String fileName;
     int startPosition;
     int size;
+    int diskIndexPosition; //  PENDIENTE
 
     public FileIndex(String fileName, int startPosition, int size) {
         this.fileName = fileName;
@@ -40,6 +41,14 @@ public class FileIndex {
 
     public int getSize() {
         return size;
+    }
+
+    public void setDiskIndexPosition(int diskIndexPosition) {
+        this.diskIndexPosition = diskIndexPosition;
+    }
+
+    public int getDiskIndexPosition() {
+        return diskIndexPosition;
     }
 
     public String toString() {

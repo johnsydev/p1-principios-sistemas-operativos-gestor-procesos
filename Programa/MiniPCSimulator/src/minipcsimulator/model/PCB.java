@@ -1,6 +1,7 @@
 package minipcsimulator.model;
 
 import java.util.Stack;
+import java.util.ArrayList;
 import minipcsimulator.model.Process.ProcessState;
 
 /**
@@ -39,6 +40,8 @@ public class PCB {
     private int start_time = 0; // tick de tiempo de inicio del proceso
     private int time_spent = 0; // tiempo total que ha estado en ejecución el proceso en ticks
 
+    ArrayList<String> openedFiles = new ArrayList<>();
+
     private PCB nextPCB; // referencia al siguiente PCB en la lista enlazada de PCBs
 
     private int priority = 1; // por defecto 1 para todos durante este proyecto
@@ -61,7 +64,7 @@ public class PCB {
         this.ownerProcess = ownerProcess;
         this.PID = ownerProcess.getPID();                            
         this.startPosition = startPosition;         // 4 es el tamaño fijo de PCB + cantidad de registros
-        this.memoryPositionPCB = pcbStartAddress; //(SystemConfig.KERNEL_MEMORY_START + (this.PID-SystemConfig.FIRST_PROCESS_ID)) * (SystemConfig.PCB_SIZE);
+        this.memoryPositionPCB = pcbStartAddress; //(SystemConfig.PCB_MEMORY_START + (this.PID-SystemConfig.FIRST_PROCESS_ID)) * (SystemConfig.PCB_SIZE);
         this.state = ProcessState.NEW;
         this.PC = startPosition;
         stack = new Stack();
@@ -255,6 +258,20 @@ public class PCB {
 
     public void setPriority(int priority) {
         this.priority = priority;
+    }
+
+    public void addOpenedFile(String fileName) {
+        if (!openedFiles.contains(fileName)) {
+            openedFiles.add(fileName);
+        }
+    }
+
+    public void removeOpenedFile(String fileName) {
+        openedFiles.remove(fileName);
+    }
+
+    public String getStringOpenedFiles() {
+        return String.join(", ", openedFiles);
     }
 
     public void setNextPCB(PCB nextPCB) {

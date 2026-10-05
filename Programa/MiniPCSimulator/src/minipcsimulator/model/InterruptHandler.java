@@ -64,31 +64,32 @@ public class InterruptHandler {
         }
     }
 
-    public void handleInterruptFileManager(CPU cpu, String operation) {
+    public void handleInterruptFileManager(CPU cpu, String operation, String fileName) {
         cpu.getPCB().setState(Process.ProcessState.BLOCKED);
-        System.out.println("InterruptHandler: Proceso PID " + cpu.getPCB().getPID() + " bloqueado para operación de File Manager: " + operation + " con DX = " + cpu.getPCB().getDX() + " y AL = " + cpu.getAL());
+        System.out.println("InterruptHandler: Proceso PID " + cpu.getPCB().getPID() + " bloqueado para operación de File Manager: " + operation + " con DX = " + fileName + " y AL = " + cpu.getAL());
         switch (operation) {
             case "CREATE_FILE":
-                int createResult = this.fileSystem.createFile(cpu.getPCB().getDX());
+                int createResult = this.fileSystem.createFile(fileName);
                 cpu.setAL(createResult);
                 break;
             case "DELETE_FILE":
-                int deleteResult = this.fileSystem.deleteFile(cpu.getPCB().getDX());
+                int deleteResult = this.fileSystem.deleteFile(fileName);
                 cpu.setAL(deleteResult);
                 break;
             case "READ_FILE":
-                String content = this.fileSystem.readFile(cpu.getPCB().getDX());
+                String content = this.fileSystem.readFile(fileName);
                 if (content != null) {
                     cpu.setAL(Integer.parseInt(content)); // Success
                 }
                 break;
             case "WRITE_FILE":
-                int writeResult = this.fileSystem.writeFile(cpu.getPCB().getDX(), String.valueOf(cpu.getAL()));
+                int writeResult = this.fileSystem.writeFile(fileName, String.valueOf(cpu.getAL()));
                 cpu.setAL(writeResult); // Success
                 break;
             case "OPEN_FILE":
-                int openResult = this.fileSystem.openFile(cpu.getPCB().getDX());
+                int openResult = this.fileSystem.openFile(fileName);
                 cpu.setAL(openResult); // Success
+                cpu.getPCB().addOpenedFile(fileName);
                 break;
             default:
                 System.out.println("Operación de File Manager desconocida: " + operation);

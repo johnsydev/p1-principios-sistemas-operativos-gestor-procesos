@@ -789,19 +789,19 @@ public class CPU {
         System.out.println("INT 21H: Operación " + op + " solicitada por el proceso " + pcb.getPID());
         switch (op) {
             case 60: // 3CH
-                interruptHandler.handleInterruptFileManager(this, "CREATE_FILE");
+                interruptHandler.handleInterruptFileManager(this, "CREATE_FILE", getDX());
                 break;
             case 61: // 3DH
-                interruptHandler.handleInterruptFileManager(this, "OPEN_FILE");
+                interruptHandler.handleInterruptFileManager(this, "OPEN_FILE", getDX());
                 break;
             case 64: // 40H
-                interruptHandler.handleInterruptFileManager(this, "WRITE_FILE");
+                interruptHandler.handleInterruptFileManager(this, "WRITE_FILE", getDX());
                 break;
             case 65: // 41H
-                interruptHandler.handleInterruptFileManager(this, "DELETE_FILE");
+                interruptHandler.handleInterruptFileManager(this, "DELETE_FILE", getDX());
                 break;
             case 77: // 4DH
-                interruptHandler.handleInterruptFileManager(this, "READ_FILE");
+                interruptHandler.handleInterruptFileManager(this, "READ_FILE", getDX());
                 break;
             default:
                 System.out.println("Error: Operación de INT 21H no reconocida.");

@@ -20,6 +20,7 @@ import minipcsimulator.model.Job;
 import minipcsimulator.model.JobList;
 import minipcsimulator.model.Loader;
 import minipcsimulator.model.MainMemory;
+import minipcsimulator.model.MemoryRegister;
 import minipcsimulator.model.Process;
 import minipcsimulator.model.Process.ProcessState;
 import minipcsimulator.model.ProcessList;
@@ -245,6 +246,16 @@ public class MiniPCController {
 
         Job job = new Job(filePath, fileName, lines, asmArray);
         job.setDiskStartAddress(startAddress);
+        int jobAddressRAM = -1;
+        try {
+            jobAddressRAM = Loader.getFreeSpaceForJobInfo(this.memory);
+        } catch (Exception e) {
+            vista.mostrarError(e.getMessage());
+            return;
+        }
+
+        memory.setPosition(jobAddressRAM, new MemoryRegister("PID = " + job.getAssignedPID(), job.getAssignedPID()));
+        memory.setPosition(jobAddressRAM + 1, new MemoryRegister("DiskIndexPosition = " + fileIndex.getDiskIndexPosition(), fileIndex.getDiskIndexPosition()));
 
         this.jobList.addJob(job);
         actualizarVistaListaProcesos();

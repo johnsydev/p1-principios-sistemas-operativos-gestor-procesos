@@ -32,7 +32,7 @@ public class Scheduler {
 
             if (job != null) {
                 int memoryStartAddress = SystemConfig.getUserMemoryStart();
-                int pcbStartAddress = SystemConfig.KERNEL_MEMORY_START;
+                int pcbStartAddress = SystemConfig.PCB_MEMORY_START;
                 try {
                     memoryStartAddress = Loader.getFreeSpaceInMemory(job.getSize(), memory);
                     pcbStartAddress = Loader.getFreeSpaceInMemoryForPCB(memory);

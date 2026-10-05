@@ -48,6 +48,7 @@ public class Loader {
         try {
             int posIndex = getFreeSpaceInFileIndex(disk);
             disk.setFileIndex(posIndex, fileIndex);
+            fileIndex.setDiskIndexPosition(posIndex);
         } catch (Exception e) {
             throw new RuntimeException("Error al almacenar el índice del archivo en el disco: " + e.getMessage());
         }
@@ -175,7 +176,7 @@ public class Loader {
      * @throws Exception Si la memoria está llena o no hay un bloque contiguo del tamaño requerido.
      */
     public static int getFreeSpaceInMemoryForPCB(MainMemory memory) throws Exception {
-        int startAddress = SystemConfig.KERNEL_MEMORY_START;
+        int startAddress = SystemConfig.PCB_MEMORY_START;
         int totalKernelSize = SystemConfig.getUserMemoryStart();
 
         int size = SystemConfig.PCB_SIZE;
@@ -225,5 +226,24 @@ public class Loader {
         
         // Si después de recorrer todo el disco no se encontró un bloque contiguo suficiente
         throw new Exception("No hay espacio libre en el Disco para índices de archivos.");
+    }
+
+    public static int getFreeSpaceForJobInfo(MainMemory memory) throws Exception {
+        int startAddress = 0;
+        int totalSpaceForJobs = SystemConfig.PCB_MEMORY_START; //PENDIENTE
+
+        int consecutiveFree = 0;
+        for (int i = startAddress; i < totalSpaceForJobs; i++) {
+            // Verificamos si la celda actual en el disco está libre
+            if (memory.getPosition(i) == null) {
+                consecutiveFree++;
+            }
+            if (consecutiveFree == 2) {
+                return i-1; // marca el inicio si no tienen uno
+            }
+        }
+        
+        // Si después de recorrer todo el disco no se encontró un bloque contiguo suficiente
+        throw new Exception("No hay espacio libre en el Disco para trabajos.");
     }
 }

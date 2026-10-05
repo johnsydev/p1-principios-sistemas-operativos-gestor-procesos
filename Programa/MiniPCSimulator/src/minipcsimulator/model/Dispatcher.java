@@ -65,6 +65,8 @@ public class Dispatcher {
         int size_scope = pcb.getSizeProcessScope();
         int priority = pcb.getPriority();
 
+        String openedFiles = pcb.getStringOpenedFiles();
+
         Stack<Integer> stack = pcb.getStack();
 
         // pos memoria BCP
@@ -89,8 +91,8 @@ public class Dispatcher {
         memory.setPosition(memoryPosition + 10 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_start_time = " + start_time, start_time));
         memory.setPosition(memoryPosition + 11 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_spent_time = " + spent_time, spent_time));
         
-        memory.setPosition(memoryPosition + 12 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_opened_files = " + "null", 0)); //PENDIENTE
-        memory.setPosition(memoryPosition + 13 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_next_bcp = " + "null", 0));
+        memory.setPosition(memoryPosition + 12 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_opened_files = " + openedFiles, 0)); //PENDIENTE
+        memory.setPosition(memoryPosition + 13 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_next_bcp = " + "null", ""));
         memory.setPosition(memoryPosition + 14 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_base_address = " + base_address, base_address));
         memory.setPosition(memoryPosition + 15 + SystemConfig.STACK_SIZE, new MemoryRegister("bcp_size_scope = " + size_scope, size_scope));
 
