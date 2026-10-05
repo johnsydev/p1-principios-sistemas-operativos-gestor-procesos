@@ -826,8 +826,10 @@ public class VentanaPrincipal extends JFrame {
     public void setIR(String valor) { txtIR.setText(valor); }
     public void setAC(int valor) { txtAC.setText(String.valueOf(valor)); }
     public void setAX(int valor) { txtAX.setText(String.valueOf(valor)); }
+    public void setAX(String valor) { txtAX.setText(String.valueOf(valor)); }
     public void setBX(int valor) { txtBX.setText(String.valueOf(valor)); }
     public void setCX(int valor) { txtCX.setText(String.valueOf(valor)); }
     public void setDX(int valor) { txtDX.setText(String.valueOf(valor)); }
+    public void setDX(String valor) { txtDX.setText(String.valueOf(valor)); }
     public void setTicks(int valor) { ticksCount = valor; lblTicks.setText("TICKS: " + ticksCount); }
 }

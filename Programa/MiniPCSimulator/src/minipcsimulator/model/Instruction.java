@@ -80,7 +80,7 @@ public class Instruction {
     public boolean isOperandRegister(int index) {
         String operand = getOperand(index);
         if (operand != null && !operand.isEmpty()) {
-            if (operand.endsWith("X")) {
+            if (operand.endsWith("X") || operand.equals("AH") || operand.equals("AL")) {
                 return true;
             }
         }

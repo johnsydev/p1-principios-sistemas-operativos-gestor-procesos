@@ -51,10 +51,10 @@ public class Dispatcher {
         String state = pcb.getState().toString();
         int pc = pcb.getPC();
         int ac = pcb.getAC();
-        int ax = pcb.getAX();
+        String ax = pcb.getAX();
         int bx = pcb.getBX();
         int cx = pcb.getCX();
-        int dx = pcb.getDX();
+        String dx = pcb.getDX();
 
         int psw = pcb.getPSW();
 

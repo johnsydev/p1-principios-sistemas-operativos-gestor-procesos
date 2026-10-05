@@ -216,9 +216,6 @@ public class Loader {
         int startAddress = 0;
         int totalSpaceForIndex = SystemConfig.getStartDiskForPrograms();
 
-        int consecutiveFree = 0;
-        int index = -1;
-
         for (int i = startAddress; i < totalSpaceForIndex; i++) {
             // Verificamos si la celda actual en el disco está libre
             if (disk.getPosition(i) == null) {

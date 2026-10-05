@@ -1,5 +1,6 @@
 package minipcsimulator.services;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -55,7 +56,7 @@ public class AsmParser {
     */
     public static boolean isValidRegister(String register) {
         ArrayList<String> validRegisters = new ArrayList<>(Arrays.asList(
-            "AX", "BX", "CX", "DX"
+            "AX", "BX", "CX", "DX", "AH", "AL"
         ));
         if (!validRegisters.contains(register)) {
             throw new RuntimeException("Error de sintaxis: Registro no reconocido en la línea " + AsmParser.numberLine);
@@ -80,6 +81,22 @@ public class AsmParser {
         }
     }
 
+    public static boolean isValidString(String str) {
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+        //validar comillas
+        if (!str.startsWith("\"") || !str.endsWith("\"")) {
+            return false;
+        }
+        //validar que la cadena no contenga comillas internas
+        String innerContent = str.substring(1, str.length() - 1);
+        if (innerContent.contains("\"")) {
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Verifica si una instrucción es válida.
      * @param instruction La instrucción a verificar.
@@ -95,6 +112,10 @@ public class AsmParser {
 
         ArrayList<String> validInterrupts = new ArrayList<>(Arrays.asList(
             "20H", "10H", "09H", "21H"
+        ));
+
+        ArrayList<String> validHexInterrupts = new ArrayList<>(Arrays.asList(
+            "3ch", "3dh", "4dh", "40h", "41h"
         ));
 
         if (!validInstructions.contains(parts.get(0))) {
@@ -115,7 +136,18 @@ public class AsmParser {
                     throw new RuntimeException("Error de sintaxis: Instrucción " + parts.get(0) + " requiere un registro válido en la línea " + AsmParser.numberLine);
                 }
             case "MOV":
-                if (parts.size() == 3 && isValidRegister(parts.get(1).trim()) && (isValidNumber(parts.get(2).trim()) || isValidRegister(parts.get(2).trim()))) {
+                if (parts.size() == 3 && isValidRegister(parts.get(1).trim()) && (isValidNumber(parts.get(2).trim()) || isValidString(parts.get(2).trim()) || validHexInterrupts.contains(parts.get(2).trim()) || isValidRegister(parts.get(2).trim()))) {
+                    
+                    // si se intenta mover una cadena a un registro que no sea DX
+                    if (parts.size() == 3 && isValidString(parts.get(2).trim()) && !parts.get(1).trim().equals("DX")) {
+                        throw new RuntimeException("Error de sintaxis: Instrucción MOV con cadena solo es válida para el registro DX en la línea " + AsmParser.numberLine);
+                    }
+
+                    // si se intenta mover una interrupción a un registro que no sea AH
+                    if (parts.size() == 3 && validHexInterrupts.contains(parts.get(2).trim()) && !parts.get(1).trim().equals("AH")) {
+                        throw new RuntimeException("Error de sintaxis: Instrucción MOV con interrupción hexadecimal solo es válida para el registro AH en la línea " + AsmParser.numberLine);
+                    }
+                    
                     return true;
                 }
                 else {

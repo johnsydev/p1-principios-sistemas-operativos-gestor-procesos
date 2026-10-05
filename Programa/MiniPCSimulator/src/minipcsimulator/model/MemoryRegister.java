@@ -6,7 +6,7 @@ package minipcsimulator.model;
  */
 public class MemoryRegister {
     public String name;
-    public int value;
+    public String value;
     public Instruction instruction;
     public FileIndex fileIndex;
 
@@ -17,6 +17,11 @@ public class MemoryRegister {
      * @param value El valor entero del registro de memoria.
      */
     public MemoryRegister(String name, int value) {
+        this.name = name;
+        this.value = Integer.toString(value);
+    }
+
+    public MemoryRegister(String name, String value) {
         this.name = name;
         this.value = value;
     }
@@ -42,6 +47,10 @@ public class MemoryRegister {
      * @return El valor entero del registro de memoria.
      */
     public int getValue() {
+        return Integer.parseInt(this.value);
+    }
+
+    public String getValueString() {
         return this.value;
     }
 

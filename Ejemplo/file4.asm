@@ -1,5 +1,26 @@
 MOV AX, 10
 MOV BX, 5
+
+MOV DX, "prueba.txt"
+MOV AH, 3ch
+INT 21H
+
+MOV DX, "prueba.txt"
+MOV AH, 3dh
+INT 21H
+
+MOV DX, "prueba.txt"
+MOV AL, 23
+MOV AH, 40h
+INT 21H
+
+MOV AX, 7
+
+MOV DX, "prueba.txt"
+MOV AH, 4dh
+INT 21H
+
+INT 09H
 ADD AX
 STORE CX
 LOAD CX

@@ -7,11 +7,14 @@ public class InterruptHandler {
 
     String bufferOutput = "";
     boolean hasPendingOutput = false;
+    boolean hasPendingInput = false;
+    FileSystem fileSystem;
 
-    public InterruptHandler(MainMemory memory, ProcessList processList, Scheduler scheduler) {
+    public InterruptHandler(MainMemory memory, ProcessList processList, Scheduler scheduler, FileSystem fileSystem) {
         this.memory = memory;
         this.processList = processList;
         this.scheduler = scheduler;
+        this.fileSystem = fileSystem;
     }
 
     public void handleInterruptEXIT(CPU cpu) {
@@ -37,6 +40,7 @@ public class InterruptHandler {
         if (ioType.equals("INPUT")) {
 
             cpu.getPCB().setState(Process.ProcessState.BLOCKED);
+            this.hasPendingInput = true;
             Dispatcher.saveContext(processList.getFirstProcess(), cpu, memory);
 
         } else if (ioType.equals("OUTPUT")) {
@@ -50,9 +54,9 @@ public class InterruptHandler {
     }
 
     public void handleInterruptIOInput(Process blockedProcess, int value) {
-            if (blockedProcess != null && blockedProcess.getPCB() != null) {
-
-            blockedProcess.getPCB().setDX(value);
+        if (blockedProcess != null && blockedProcess.getPCB() != null) {
+            this.hasPendingInput = false;
+            blockedProcess.getPCB().setDX(String.valueOf(value));
             
             blockedProcess.getPCB().setState(Process.ProcessState.READY);
             
@@ -60,8 +64,44 @@ public class InterruptHandler {
         }
     }
 
+    public void handleInterruptFileManager(CPU cpu, String operation) {
+        cpu.getPCB().setState(Process.ProcessState.BLOCKED);
+        System.out.println("InterruptHandler: Proceso PID " + cpu.getPCB().getPID() + " bloqueado para operación de File Manager: " + operation + " con DX = " + cpu.getPCB().getDX() + " y AL = " + cpu.getAL());
+        switch (operation) {
+            case "CREATE_FILE":
+                int createResult = this.fileSystem.createFile(cpu.getPCB().getDX());
+                cpu.setAL(createResult);
+                break;
+            case "DELETE_FILE":
+                int deleteResult = this.fileSystem.deleteFile(cpu.getPCB().getDX());
+                cpu.setAL(deleteResult);
+                break;
+            case "READ_FILE":
+                String content = this.fileSystem.readFile(cpu.getPCB().getDX());
+                if (content != null) {
+                    cpu.setAL(Integer.parseInt(content)); // Success
+                }
+                break;
+            case "WRITE_FILE":
+                int writeResult = this.fileSystem.writeFile(cpu.getPCB().getDX(), String.valueOf(cpu.getAL()));
+                cpu.setAL(writeResult); // Success
+                break;
+            case "OPEN_FILE":
+                int openResult = this.fileSystem.openFile(cpu.getPCB().getDX());
+                cpu.setAL(openResult); // Success
+                break;
+            default:
+                System.out.println("Operación de File Manager desconocida: " + operation);
+        }
+        cpu.getPCB().setState(Process.ProcessState.READY);
+    }
+
     public boolean hasPendingOutput() {
         return hasPendingOutput;
+    }
+
+    public boolean hasPendingInput() {
+        return hasPendingInput;
     }
 
     public String clearBufferOutput() {

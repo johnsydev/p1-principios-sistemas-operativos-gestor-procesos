@@ -37,7 +37,11 @@ public class CPU {
         AX(5, "REGISTER", 0),
         BX(6, "REGISTER", 0),
         CX(7, "REGISTER", 0),
-        DX(8, "REGISTER", 0);
+        DX(8, "REGISTER", 0),
+
+        //PARTES DE AX
+        AH(9, "PART_REGISTER", 0),
+        AL(10, "PART_REGISTER", 0);
 
         private final int id;
         private final String type;
@@ -85,10 +89,10 @@ public class CPU {
     private int AC = 0;
     private Instruction IR;
  
-    private int AX = 0;
+    private String AX = "0";
     private int BX = 0;
     private int CX = 0;
-    private int DX = 0;
+    private String DX = "0";
 
     private Stack<Integer> stack;
 
@@ -140,12 +144,34 @@ public class CPU {
         this.pcb = null;
         this.PC = 0;
         this.AC = 0;
-        this.AX = 0;
+        this.AX = "0";
         this.BX = 0;
         this.CX = 0;
-        this.DX = 0;
+        this.DX = "0";
         this.stack = null;
         this.PSW = 0;
+    }
+
+    private int hexStringToInt(String hexStr) {
+        if (hexStr == null || hexStr.trim().isEmpty()) {
+            return -1;
+        }
+
+        String limpio = hexStr.trim();
+
+        if (limpio.endsWith("h")) {
+            limpio = limpio.substring(0, limpio.length() - 1);
+        } else if (limpio.startsWith("0x")) {
+            limpio = limpio.substring(2);
+        } else {
+            return Integer.parseInt(limpio);
+        }
+
+        try {
+            return Integer.parseInt(limpio, 16);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 
     /**
@@ -202,15 +228,16 @@ public class CPU {
                 executeSUB(OpCode.getByCode(IR.getOperand(0)));
                 break;
             case MOV:
-                if (!IR.isOperandRegister(1)) { // si el segundo operando no es un registro, se asume que es un valor numérico
+                if (IR.getOperand(1).contains("\"")) {
+                    executeMOV(OpCode.getByCode(IR.getOperand(0)), IR.getOperand(1).replace("\"", ""));    
+                } else if (!IR.isOperandRegister(1)) { // si el segundo operando no es un registro, se asume que es un valor numérico
                     if (IR.getOperand(1) != null && !IR.getOperand(1).isEmpty()) {
                         try {
-                            executeMOV(OpCode.getByCode(IR.getOperand(0)), Integer.parseInt(IR.getOperand(1)));
+                            executeMOV(OpCode.getByCode(IR.getOperand(0)), hexStringToInt(IR.getOperand(1)));
                         } catch (NumberFormatException e) {
                             //despues ver
                         }
                     }
-                    
                 }
                 else { // se trata como registro
                     executeMOV(OpCode.getByCode(IR.getOperand(0)), OpCode.getByCode(IR.getOperand(1)));
@@ -301,7 +328,7 @@ public class CPU {
     public void executeLOAD(OpCode register) {
         switch (register) {
             case AX:
-                AC = AX;
+                AC = getIntAX();
                 break;
             case BX:
                 AC = BX;
@@ -310,7 +337,13 @@ public class CPU {
                 AC = CX;
                 break;
             case DX:
-                AC = DX;
+                AC = getIntDX();
+                break;
+            case AH:
+                AC = getAH();
+                break;
+            case AL:
+                AC = getAL();
                 break;
             default:
                 System.out.println("Error: Registro no reconocido.");
@@ -325,7 +358,7 @@ public class CPU {
     public void executeSTORE(OpCode register) {
         switch (register) {
             case AX:
-                AX = AC;
+                setAX(AC);
                 break;
             case BX:
                 BX = AC;
@@ -334,7 +367,13 @@ public class CPU {
                 CX = AC;
                 break;
             case DX:
-                DX = AC;
+                setDX(AC);
+                break;
+            case AH:
+                setAH(AC);
+                break;
+            case AL:
+                setAL(AC);
                 break;
             default:
                 System.out.println("Error: Registro no reconocido.");
@@ -349,7 +388,7 @@ public class CPU {
     public void executeADD(OpCode register) {
         switch (register) {
             case AX:
-                AC += AX;
+                AC += getIntAX();
                 break;
             case BX:
                 AC += BX;
@@ -358,7 +397,13 @@ public class CPU {
                 AC += CX;
                 break;
             case DX:
-                AC += DX;
+                AC += getIntDX();
+                break;
+            case AH:
+                AC += getAH();
+                break;
+            case AL:
+                AC += getAL();
                 break;
             default:
                 System.out.println("Error: Registro no reconocido.");
@@ -373,7 +418,7 @@ public class CPU {
     public void executeSUB(OpCode register) {
         switch (register) {
             case AX:
-                AC -= AX;
+                AC -= getIntAX();
                 break;
             case BX:
                 AC -= BX;
@@ -382,7 +427,13 @@ public class CPU {
                 AC -= CX;
                 break;
             case DX:
-                AC -= DX;
+                AC -= getIntDX();
+                break;
+            case AH:
+                AC -= getAH();
+                break;
+            case AL:
+                AC -= getAL();
                 break;
             default:
                 System.out.println("Error: Registro no reconocido.");
@@ -397,7 +448,7 @@ public class CPU {
     public void executeMOV(OpCode register, int value) {
         switch (register) {
             case AX:
-                AX = value;
+                setAX(value);
                 break;
             case BX:
                 BX = value;
@@ -406,10 +457,26 @@ public class CPU {
                 CX = value;
                 break;
             case DX:
-                DX = value;
+                setDX(value);
+                break;
+            case AH:
+                setAH(value);
+                break;
+            case AL:
+                setAL(value);
                 break;
             default:
                 System.out.println("Error: Registro no reconocido.");
+        }
+    }
+
+    public void executeMOV(OpCode register, String value) {
+        switch (register) {
+            case DX:
+                setDX(value);
+                break;
+            default:
+                System.out.println("Error: Registro no reconocido para mover cadena.");
         }
     }
 
@@ -421,7 +488,7 @@ public class CPU {
     public void executeMOV(OpCode destRegister, OpCode srcRegister) { //método sobrecargado
         switch (srcRegister) {
             case AX:
-                executeMOV(destRegister, AX);
+                executeMOV(destRegister, getIntAX());
                 break;
             case BX:
                 executeMOV(destRegister, BX);
@@ -430,7 +497,13 @@ public class CPU {
                 executeMOV(destRegister, CX);
                 break;
             case DX:
-                executeMOV(destRegister, DX);
+                executeMOV(destRegister, getIntDX());
+                break;
+            case AH: //PENDIENTE POSIBLE OVERFLOW
+                executeMOV(destRegister, getAH());
+                break;
+            case AL:
+                executeMOV(destRegister, getAL());
                 break;
             default:
                 System.out.println("Error: Registro no reconocido.");
@@ -451,7 +524,7 @@ public class CPU {
     public void executeINC(OpCode register) {
         switch (register) {
             case AX:
-                AX++;
+                setAX(getIntAX() + 1);
                 break;
             case BX:
                 BX++;
@@ -460,7 +533,13 @@ public class CPU {
                 CX++;
                 break;
             case DX:
-                DX++;
+                setDX(getIntDX() + 1);
+                break;
+            case AH:
+                setAH(getAH() + 1);
+                break;
+            case AL:
+                setAL(getAL() + 1);
                 break;
             default:
                 System.out.println("Error: Registro no reconocido.");
@@ -481,7 +560,7 @@ public class CPU {
     public void executeDEC(OpCode register) {
         switch (register) {
             case AX:
-                AX--;
+                setAX(getIntAX() - 1);
                 break;
             case BX:
                 BX--;
@@ -490,7 +569,13 @@ public class CPU {
                 CX--;
                 break;
             case DX:
-                DX--;
+                setDX(getIntDX() - 1);
+                break;
+            case AH:
+                setAH(getAH() - 1);
+                break;
+            case AL:
+                setAL(getAL() - 1);
                 break;
             default:
                 System.out.println("Error: Registro no reconocido.");
@@ -506,13 +591,17 @@ public class CPU {
     private int getRegisterValue(OpCode register) {
         switch (register) {
             case AX:
-                return AX;
+                return getIntAX();
             case BX:
                 return BX;
             case CX:
                 return CX;
             case DX:
-                return DX;
+                return getIntDX();
+            case AH:
+                return getAH();
+            case AL:
+                return getAL();
             default:
                 System.out.println("Error: Registro no reconocido.");
                 return 0;
@@ -527,7 +616,7 @@ public class CPU {
     private void setRegisterValue(OpCode register, int value) {
         switch (register) {
             case AX:
-                AX = value;
+                setAX(value);
                 break;
             case BX:
                 BX = value;
@@ -536,7 +625,13 @@ public class CPU {
                 CX = value;
                 break;
             case DX:
-                DX = value;
+                setDX(value);
+                break;
+            case AH:
+                setAH(value);
+                break;
+            case AL:
+                setAL(value);
                 break;
             default:
                 System.out.println("Error: Registro no reconocido.");
@@ -690,7 +785,27 @@ public class CPU {
 
     // file manager
     public void executeINT_21H() {
-        // PENDIENTE
+        int op = getAH();
+        System.out.println("INT 21H: Operación " + op + " solicitada por el proceso " + pcb.getPID());
+        switch (op) {
+            case 60: // 3CH
+                interruptHandler.handleInterruptFileManager(this, "CREATE_FILE");
+                break;
+            case 61: // 3DH
+                interruptHandler.handleInterruptFileManager(this, "OPEN_FILE");
+                break;
+            case 64: // 40H
+                interruptHandler.handleInterruptFileManager(this, "WRITE_FILE");
+                break;
+            case 65: // 41H
+                interruptHandler.handleInterruptFileManager(this, "DELETE_FILE");
+                break;
+            case 77: // 4DH
+                interruptHandler.handleInterruptFileManager(this, "READ_FILE");
+                break;
+            default:
+                System.out.println("Error: Operación de INT 21H no reconocida.");
+        }
     }
 
     /**
@@ -714,6 +829,10 @@ public class CPU {
 
             if (opcode != null) {
                 ticksRemaining = opcode.weight;
+
+                if (opcode == OpCode.INT_20H || opcode == OpCode.INT_10H || opcode == OpCode.INT_09H || opcode == OpCode.INT_21H) { //PENDIENTE
+                    pcb.setState(Process.ProcessState.BLOCKED);
+                }
             } else {
                 System.out.println("Error: Instrucción o registro no reconocido.");
             }
@@ -727,6 +846,43 @@ public class CPU {
         }
     }
 
+    // SETTERS
+    public void setAX(int value) {
+        if (value < 0 || value > 65535) {
+            System.out.println("Error: Valor fuera del rango permitido para AX (0-65535).");
+            return;
+        }
+        this.AX = String.valueOf(value);
+    }
+
+    public void setAX(String value) {
+        this.AX = value;
+        if (value.contains("|")) {
+            String[] parts = value.split("\\|");
+            if (parts.length == 2) {
+                setAH(Integer.parseInt(parts[0]));
+                setAL(Integer.parseInt(parts[1]));
+            }
+        }
+    }
+
+    public void setAH(int value) {
+        if (value < 0 || value > 255) {
+            System.out.println("Error: Valor fuera del rango permitido para AH (0-255).");
+            return;
+        }
+        int al = getAL();
+        this.AX = value + "|" + al;
+    }
+
+    public void setAL(int value) {
+        if (value < 0 || value > 255) {
+            System.out.println("Error: Valor fuera del rango permitido para AL (0-255).");
+            return;
+        }
+        int ah = getAH();
+        this.AX = ah + "|" + value;
+    }
 
     // GETTERS
     public int getPC() {
@@ -741,8 +897,48 @@ public class CPU {
         return AC;
     }
 
-    public int getAX() {
+    private String decToHex(int value) {
+        String hex = Integer.toHexString(value);
+        if (hex.length() < 2) {
+            hex = "0" + hex;
+        }
+        return hex;
+    }
+
+    public String getAX() {
+        if (AX.contains("|")) {
+            return getAH() + "|" + getAL();
+        }
         return AX;
+    }
+
+    public int getAH() {
+        if (AX.contains("|")) {
+            return Integer.parseInt(AX.split("\\|")[0]);
+        }
+        return 0;
+    }
+
+    public int getAL() {
+        if (AX.contains("|")) {
+            return Integer.parseInt(AX.split("\\|")[1]);
+        }
+        return Integer.parseInt(AX);
+    }
+
+    public int getIntAX() {
+        if (AX.contains("|")) {
+            return getAH() * 256 + getAL();
+        }
+        return Integer.parseInt(AX);
+    }
+
+    public void setDX(String DX) {
+        this.DX = DX;
+    }
+
+    public void setDX(int DX) {
+        this.DX = String.valueOf(DX);
     }
 
     public int getBX() {
@@ -753,8 +949,16 @@ public class CPU {
         return CX;
     }
 
-    public int getDX() {
+    public String getDX() {
         return DX;
+    }
+
+    public int getIntDX() {
+        try {
+            return Integer.parseInt(DX);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     public int getPSW() {

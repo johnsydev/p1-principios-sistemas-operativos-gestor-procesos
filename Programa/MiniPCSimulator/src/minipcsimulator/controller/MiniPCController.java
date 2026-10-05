@@ -24,6 +24,7 @@ import minipcsimulator.model.Process;
 import minipcsimulator.model.Process.ProcessState;
 import minipcsimulator.model.ProcessList;
 import minipcsimulator.model.Scheduler;
+import minipcsimulator.model.FileSystem;
 import minipcsimulator.model.SystemClock;
 import minipcsimulator.services.AsmParser;
 import minipcsimulator.services.FileManager;
@@ -44,6 +45,7 @@ public class MiniPCController {
     private ProcessList processList;
     private Scheduler scheduler;
     private InterruptHandler interruptHandler;
+    private FileSystem fileSystem;
     // lista de procesos: [1, 0, 3, ...], los procesos en 0 terminaron y se pueden reemplazar
     // los que tienen número ese es su ID
 
@@ -59,7 +61,8 @@ public class MiniPCController {
         this.jobList = new JobList();
         this.processList = new ProcessList(this.memory);
         this.scheduler = new Scheduler(this.jobList, this.processList, this.memory, this.disk, this.systemClock);
-        this.interruptHandler = new InterruptHandler(this.memory, this.processList, this.scheduler);
+        this.fileSystem = new FileSystem(this.disk);
+        this.interruptHandler = new InterruptHandler(this.memory, this.processList, this.scheduler, this.fileSystem);
         this.cpu = new CPU(this.memory, interruptHandler);
 
         actualizarVista();
@@ -318,7 +321,7 @@ public class MiniPCController {
                 vista.mostrarError("El proceso aún no ha sido cargado en memoria. Cargue el programa primero.");
                 return false;
             }
-            else if (this.cpu.getPCB().getState() == ProcessState.BLOCKED) {
+            else if (this.cpu.getPCB().getState() == ProcessState.BLOCKED && this.interruptHandler.hasPendingInput()) {
                 vista.mostrarError("El proceso está bloqueado. No se puede ejecutar hasta que se desbloquee.");
                 return false;
             }
@@ -360,7 +363,7 @@ public class MiniPCController {
         this.cpu.executeInstruction();
 
         // Input
-        if (currentProcess.getState() == ProcessState.BLOCKED) {
+        if (currentProcess.getState() == ProcessState.BLOCKED && this.interruptHandler.hasPendingInput()) {
             actualizarVistaListaProcesos();
             actualizarVistaCPU();
             vista.getTxtTeclado().setEnabled(true);
@@ -394,7 +397,7 @@ public class MiniPCController {
             actualizarVistaCPU();
             List<Object[]> memoryRows = this.memory.getAllMemoryRows();
             vista.actualizarTablaMemoria(memoryRows, this.cpu.getCurrentInstructionAddress()+1 - (SystemConfig.getUserMemoryStart()-SystemConfig.PCB_SIZE*this.processList.getProcessCount())); // el segundo parámetro es para resaltar instrucción actual en la tabla de memoria
-
+            vista.actualizarTablaDisco(this.disk.getAllDiskRows().get(0));
         }
     }
 
@@ -476,14 +479,17 @@ public class MiniPCController {
         this.memory = null; //sacamos memoria vieja
         this.cpu = null; //sacamos cpu vieja
         this.disk = null; //sacamos disco viejo
+        this.fileSystem = null; //sacamos file system viejo
 
         this.memory = new MainMemory(); // ponemos memoria nueva
         this.disk = new Disk(); // ponemos disco nuevo
 
+        this.fileSystem = new FileSystem(this.disk);
+
         this.jobList = new JobList();
         this.processList = new ProcessList(this.memory);
         this.scheduler = new Scheduler(this.jobList, this.processList, this.memory, this.disk, this.systemClock);
-        this.interruptHandler = new InterruptHandler(this.memory, this.processList, this.scheduler);
+        this.interruptHandler = new InterruptHandler(this.memory, this.processList, this.scheduler, this.fileSystem);
 
         this.cpu = new CPU(this.memory, this.interruptHandler); // ponemos cpu nueva
 
@@ -499,17 +505,19 @@ public class MiniPCController {
         this.memory = null; //sacamos memoria vieja
         this.disk = null; //sacamos disco viejo
         this.cpu = null; //sacamos cpu vieja
+        this.fileSystem = null; //sacamos file system viejo
 
         this.memory = new MainMemory(); // ponemos memoria nueva
 
         this.disk = new Disk(); // ponemos disco nuevo
 
+        this.fileSystem = new FileSystem(this.disk); // ponemos file system nuevo
         // reescribimos las listas
         this.jobList = new JobList();
         this.processList = new ProcessList(this.memory);
 
         this.scheduler = new Scheduler(this.jobList, this.processList, this.memory, this.disk, this.systemClock);
-        this.interruptHandler = new InterruptHandler(this.memory, this.processList, this.scheduler);
+        this.interruptHandler = new InterruptHandler(this.memory, this.processList, this.scheduler, this.fileSystem);
 
         this.cpu = new CPU(this.memory, this.interruptHandler); // ponemos cpu nueva
 

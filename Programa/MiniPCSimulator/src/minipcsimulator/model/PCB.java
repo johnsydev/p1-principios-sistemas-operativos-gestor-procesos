@@ -24,10 +24,10 @@ public class PCB {
     private int AC = 0; // Acumulador
 
     // Registros
-    private int AX = 0;
+    private String AX = "0";
     private int BX = 0;
     private int CX = 0;
-    private int DX = 0;
+    private String DX = "0";
 
     private Stack<Integer> stack;
 
@@ -173,11 +173,11 @@ public class PCB {
         this.AC = AC;
     }
 
-    public int getAX() {
+    public String getAX() {
         return AX;
     }
 
-    public void setAX(int AX) {
+    public void setAX(String AX) {
         this.AX = AX;
     }
 
@@ -197,11 +197,11 @@ public class PCB {
         this.CX = CX;
     }
 
-    public int getDX() {
+    public String getDX() {
         return DX;
     }
 
-    public void setDX(int DX) {
+    public void setDX(String DX) {
         this.DX = DX;
     }
 
