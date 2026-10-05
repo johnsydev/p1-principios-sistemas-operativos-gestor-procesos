@@ -9,6 +9,9 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 import javax.swing.JButton;
 import minipcsimulator.gui.VentanaPrincipal;
 import minipcsimulator.model.CPU;
@@ -27,6 +30,7 @@ import minipcsimulator.model.ProcessList;
 import minipcsimulator.model.Scheduler;
 import minipcsimulator.model.FileSystem;
 import minipcsimulator.model.SystemClock;
+import minipcsimulator.model.PCB;
 import minipcsimulator.services.AsmParser;
 import minipcsimulator.services.FileManager;
 import minipcsimulator.utils.SystemConfig;
@@ -47,8 +51,14 @@ public class MiniPCController {
     private Scheduler scheduler;
     private InterruptHandler interruptHandler;
     private FileSystem fileSystem;
-    // lista de procesos: [1, 0, 3, ...], los procesos en 0 terminaron y se pueden reemplazar
-    // los que tienen número ese es su ID
+    
+    //hora de inicio
+    private LocalDateTime startTimeSimulation;
+
+    //tiempos de input
+    private LocalDateTime startTimeInput;
+
+    private boolean autoExecute = false;
 
     /**
      * Constructor de la clase MiniPCController.
@@ -176,11 +186,13 @@ public class MiniPCController {
                 if (procesoBloqueado != null) {
                     try {
                         int valor = Integer.parseInt(textoIngresado);
+                        int ticks = LocalDateTime.now().getSecond() - startTimeInput.getSecond();
                         interruptHandler.handleInterruptIOInput(procesoBloqueado, valor);
-
+                        procesoBloqueado.getPCB().setTimeSpent(procesoBloqueado.getPCB().getTimeSpent() + ticks);
                         vista.getTxtPantalla().append("> " + valor + "\n");
 
                         vista.getTxtTeclado().setEnabled(false);
+                        startTimeInput = null;
 
                     } catch (NumberFormatException ex) {
                         vista.mostrarError("Debe ingresar un número entero válido.");
@@ -195,6 +207,17 @@ public class MiniPCController {
                 vista.getTxtTeclado().setText("");
                 actualizarVistaListaProcesos();
                 actualizarVistaCPU();
+
+                if (autoExecute) {
+                    ejecutarTodoPrograma();
+                }
+            }
+        });
+
+        vista.getBtnEstadisticas().addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                finalizarSimulacion();
             }
         });
     }
@@ -291,8 +314,12 @@ public class MiniPCController {
     private void cargarPrograma() {
         if (!this.scheduler.hasPendingJobs()) {
             vista.mostrarError("No hay un programa cargado. Seleccione un archivo .asm primero.");
+            //finalizarSimulacion(); // PENDIENTE de ver si es aqui
             return;
         }
+
+        this.startTimeSimulation = LocalDateTime.now();
+        
         /*
         if (this.process.getPCB().getState() != Process.ProcessState.NEW) {
             vista.mostrarError("El programa ya ha sido cargado en memoria. No se puede cargar nuevamente.");
@@ -319,7 +346,9 @@ public class MiniPCController {
      */
     private boolean validarParaEjecutar() {
         if (this.cpu.getPCB() == null && !this.processList.hasProcesses()) {
-            vista.mostrarError("No hay un programa cargado. Seleccione un archivo .asm primero.");
+            //vista.mostrarError("No hay un programa cargado. Seleccione un archivo .asm primero.");
+            actualizarVistaCPU();
+            finalizarSimulacion(); // PENDIENTE de ver si es aqui
             return false;
         }
         if (this.cpu.getPCB() != null) {
@@ -358,8 +387,9 @@ public class MiniPCController {
 
 
         if (currentProcess == null) {
-            vista.mostrarError("No hay un programa cargado. Seleccione un archivo .asm primero.");
-            vista.setEstadoBCP("EXIT"); // PENDIENTE
+            //vista.mostrarError("No hay un programa cargado. Seleccione un archivo .asm primero.");
+            actualizarVistaCPU();
+            finalizarSimulacion();
             return;
         }
 
@@ -375,6 +405,7 @@ public class MiniPCController {
 
         // Input
         if (currentProcess.getState() == ProcessState.BLOCKED && this.interruptHandler.hasPendingInput()) {
+            this.startTimeInput = LocalDateTime.now();
             actualizarVistaListaProcesos();
             actualizarVistaCPU();
             vista.getTxtTeclado().setEnabled(true);
@@ -423,10 +454,18 @@ public class MiniPCController {
             return;
         }
 
-        new Thread(() -> {
-            boolean hasActiveProcess = true;
+        this.autoExecute = true;
 
-            while (hasActiveProcess) {
+        new Thread(() -> {
+            boolean running = true;
+
+            while (running) {
+                Process processCheck = this.processList.getFirstProcess();
+                if (processCheck != null && processCheck.getState() == ProcessState.BLOCKED && this.interruptHandler.hasPendingInput()) {
+                    System.out.println("Ejecución automática pausada: Esperando entrada de teclado.");
+                    break; //sale del hilo a esperar input
+                }
+
                 javax.swing.SwingUtilities.invokeLater(() -> ejecutarPasoAPaso()); //pendiebte de antes o despues de sleep
 
                 try {
@@ -436,15 +475,23 @@ public class MiniPCController {
                     break;
                 }
 
-                if (this.cpu.getPCB() == null || this.cpu.getPCB().getState() == ProcessState.EXIT) {
-                    if (!this.processList.hasProcesses()) {
-                        hasActiveProcess = false;
+                Process current = this.processList.getFirstProcess();
+                if (current != null) {
+                    // pausar si cae en bloqueado y hay input pendiente
+                    if (current.getState() == ProcessState.BLOCKED && this.interruptHandler.hasPendingInput()) {
+                        System.out.println("Proceso bloqueado por input. Hilo automático pausado.");
+                        running = false;
                     }
+                } else if (!this.scheduler.hasPendingJobs()) {
+                    running = false;
                 }
             }
 
             javax.swing.SwingUtilities.invokeLater(() -> {
-                vista.setEstadoBCP("EXIT");
+                Process activeProc = this.processList.getFirstProcess();
+                if (activeProc != null && activeProc.getState() == ProcessState.EXIT) {
+                    vista.setEstadoBCP("EXIT");
+                }
             });
         }).start(); 
     }
@@ -513,6 +560,7 @@ public class MiniPCController {
      */
     private void reiniciarSistema() {
         systemClock.reset();
+        this.autoExecute = false;
         this.memory = null; //sacamos memoria vieja
         this.disk = null; //sacamos disco viejo
         this.cpu = null; //sacamos cpu vieja
@@ -549,5 +597,25 @@ public class MiniPCController {
         tableDataFinal.addAll(tableDataJob);
 
         vista.actualizarTablaTrabajos(tableDataFinal);
+    }
+
+    private void finalizarSimulacion() {
+        this.autoExecute = false;
+        List<Object[]> datosEstadisticas = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+        
+        for (Process p : this.processList.getDeletedProcesses()) {
+            PCB pcb = p.getPCB();
+            String pid = "PID " + pcb.getPID();
+            LocalDateTime horaInicioDateT = this.startTimeSimulation.plusSeconds(pcb.getStartTime());
+            String horaInicio = horaInicioDateT.format(formatter);
+            String horaFin = horaInicioDateT.plusSeconds(pcb.getTimeSpent()).format(formatter);
+            double duracionSegundos = pcb.getTimeSpent() * 1; // los ticks en segundos
+
+            datosEstadisticas.add(new Object[]{pid, horaInicio, horaFin, String.format("%.2f s", duracionSegundos)});
+        }
+
+        vista.mostrarVentanaEstadisticas(datosEstadisticas);
     }
 }

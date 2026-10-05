@@ -126,4 +126,8 @@ public class ProcessList {
         }
         return tableData;
     }
+
+    public List<Process> getDeletedProcesses() {
+        return deletedProcesses;
+    }
 }

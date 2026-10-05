@@ -70,11 +70,11 @@ public class InterruptHandler {
         switch (operation) {
             case "CREATE_FILE":
                 int createResult = this.fileSystem.createFile(fileName);
-                cpu.setAL(createResult);
+                //cpu.setAL(createResult);
                 break;
             case "DELETE_FILE":
                 int deleteResult = this.fileSystem.deleteFile(fileName);
-                cpu.setAL(deleteResult);
+                //cpu.setAL(deleteResult);
                 break;
             case "READ_FILE":
                 String content = this.fileSystem.readFile(fileName);
@@ -84,11 +84,11 @@ public class InterruptHandler {
                 break;
             case "WRITE_FILE":
                 int writeResult = this.fileSystem.writeFile(fileName, String.valueOf(cpu.getAL()));
-                cpu.setAL(writeResult); // Success
+                //cpu.setAL(writeResult); // Success
                 break;
             case "OPEN_FILE":
                 int openResult = this.fileSystem.openFile(fileName);
-                cpu.setAL(openResult); // Success
+                //cpu.setAL(openResult); // Success
                 cpu.getPCB().addOpenedFile(fileName);
                 break;
             default:

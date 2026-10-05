@@ -22,20 +22,22 @@ public class VentanaPrincipal extends JFrame {
     private static final Color TEXT = new Color(235, 238, 242);
     private static final Color TEXT_SECONDARY = new Color(155, 163, 174);
 
-    // Colores de botones oscurecidos para optimizar el contraste con texto blanco
+    // Colores de botones oscurecidos
     private static final Color BLUE = new Color(30, 95, 165);
     private static final Color GREEN = new Color(30, 130, 80);
     private static final Color RED = new Color(160, 45, 55);
     private static final Color CYAN = new Color(35, 120, 135);
     private static final Color ORANGE = new Color(175, 105, 35);
     private static final Color GRAY = new Color(50, 55, 65);
+    private static final Color PURPLE = new Color(110, 55, 150);
 
     // Componentes de la interfaz
     private JButton btnSeleccionar, btnCargar, btnPasoAPaso, btnEjecutar, btnLimpiar;
-    private JButton btnAbrirConfig, btnGuardarConfig;
+    private JButton btnEstadisticas, btnAbrirConfig, btnGuardarConfig;
     private JSpinner spTamanoMemoria, spLimiteKernel, spTamanoDisco, spTamanoVirtual;
 
     private JDialog dialogConfig;
+    private JDialog dialogEstadisticas;
     
     // Tablas
     private JTable tablaMemoria, tablaDisco, tablaVirtual, tablaTrabajos;
@@ -155,14 +157,21 @@ public class VentanaPrincipal extends JFrame {
         panelPrincipal.add(Box.createVerticalStrut(8));
         panelPrincipal.add(btnLimpiar);
 
-        panelPrincipal.add(Box.createVerticalStrut(22));
+        panelPrincipal.add(Box.createVerticalStrut(18));
 
         JSeparator separador = new JSeparator();
         separador.setForeground(BORDER);
         separador.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
 
         panelPrincipal.add(separador);
-        panelPrincipal.add(Box.createVerticalStrut(18));
+        panelPrincipal.add(Box.createVerticalStrut(14));
+
+        // Botón de Estadísticas (Deshabilitado por defecto hasta finalizar la simulación)
+        btnEstadisticas = crearBoton("📊 Estadísticas", PURPLE);
+        btnEstadisticas.setEnabled(false);
+        panelPrincipal.add(btnEstadisticas);
+
+        panelPrincipal.add(Box.createVerticalStrut(8));
 
         // Botón para abrir el diálogo modal de configuración
         btnAbrirConfig = crearBoton("⚙ Configuración", GRAY);
@@ -171,28 +180,21 @@ public class VentanaPrincipal extends JFrame {
         return panelPrincipal;
     }
 
-    /**
-     * PENDIENTE: Muestra la ventana flotante modal de configuración de memoria.
-     * Obliga al usuario a Guardar o Cancelar sin poder cerrar libremente la ventana.
-     */
     private void abrirDialogoConfiguracion() {
         dialogConfig = new JDialog(this, "Configuración de Sistema", true);
         dialogConfig.setSize(340, 420);
         dialogConfig.setResizable(false);
         dialogConfig.setLocationRelativeTo(this);
-        
-        // Bloquear el botón 'X' de la ventana para forzar la toma de decisiones por botones
         dialogConfig.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 
         JPanel panelModal = new JPanel(new BorderLayout(10, 10));
         panelModal.setBackground(BG_PANEL);
         panelModal.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        // Inicialización de Spinners dentro del modal con los valores actuales del sistema
         spTamanoMemoria = new JSpinner(new SpinnerNumberModel(SystemConfig.getMemorySize(), SystemConfig.MEMORY_SIZE_MIN, SystemConfig.MEMORY_SIZE_MAX, 16));
         spLimiteKernel = new JSpinner(new SpinnerNumberModel(SystemConfig.getUserMemoryStart(), SystemConfig.USER_MEMORY_START_MIN, SystemConfig.MEMORY_SIZE_MAX - 16, 8));
         spTamanoDisco = new JSpinner(new SpinnerNumberModel(512, 128, 2048, 32));
-        spTamanoVirtual = new JSpinner(new SpinnerNumberModel(/*SystemConfig.getVirtualMemorySize() */ 64, 16, 256, 16)); //PENDIENTE
+        spTamanoVirtual = new JSpinner(new SpinnerNumberModel(64, 16, 256, 16));
 
         estilitarSpinner(spTamanoMemoria);
         estilitarSpinner(spLimiteKernel);
@@ -211,33 +213,15 @@ public class VentanaPrincipal extends JFrame {
         JLabel lblDisco = crearLabel("Tamaño Disco");
         JLabel lblVirtual = crearLabel("Memoria Virtual");
 
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weightx = 1;
-        cardRAM.add(lblRAM, gbc);
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 1; cardRAM.add(lblRAM, gbc);
+        gbc.gridy = 1; cardRAM.add(spTamanoMemoria, gbc);
+        gbc.gridy = 2; cardRAM.add(lblKernel, gbc);
+        gbc.gridy = 3; cardRAM.add(spLimiteKernel, gbc);
+        gbc.gridy = 4; cardRAM.add(lblDisco, gbc);
+        gbc.gridy = 5; cardRAM.add(spTamanoDisco, gbc);
+        gbc.gridy = 6; cardRAM.add(lblVirtual, gbc);
+        gbc.gridy = 7; cardRAM.add(spTamanoVirtual, gbc);
 
-        gbc.gridy = 1;
-        cardRAM.add(spTamanoMemoria, gbc);
-
-        gbc.gridy = 2;
-        cardRAM.add(lblKernel, gbc);
-
-        gbc.gridy = 3;
-        cardRAM.add(spLimiteKernel, gbc);
-
-        gbc.gridy = 4;
-        cardRAM.add(lblDisco, gbc);
-
-        gbc.gridy = 5;
-        cardRAM.add(spTamanoDisco, gbc);
-
-        gbc.gridy = 6;
-        cardRAM.add(lblVirtual, gbc);
-
-        gbc.gridy = 7;
-        cardRAM.add(spTamanoVirtual, gbc);
-
-        // Panel de botones (Guardar / Cancelar)
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         panelBotones.setOpaque(false);
 
@@ -263,7 +247,65 @@ public class VentanaPrincipal extends JFrame {
         panelModal.add(panelBotones, BorderLayout.SOUTH);
 
         dialogConfig.setContentPane(panelModal);
-        //dialogConfig.setVisible(true);
+    }
+
+    /**
+     * Habilita el botón de estadísticas y despliega la ventana emergente modal
+     * con la tabla de tiempos por cada proceso ejecutado.
+     * @param datosEstadisticas Lista de filas [Proceso/PID, Hora Inicio, Hora Fin, Duración (s)]
+     */
+    public void mostrarVentanaEstadisticas(List<Object[]> datosEstadisticas) {
+        if (btnEstadisticas != null) {
+            btnEstadisticas.setEnabled(true);
+        }
+
+        dialogEstadisticas = new JDialog(this, "Estadísticas de Ejecución de Procesos", true);
+        dialogEstadisticas.setSize(560, 380);
+        dialogEstadisticas.setResizable(false);
+        dialogEstadisticas.setLocationRelativeTo(this);
+
+        JPanel panelModal = new JPanel(new BorderLayout(12, 12));
+        panelModal.setBackground(BG_PANEL);
+        panelModal.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        // Encabezado
+        JLabel lblTituloModal = new JLabel("RESUMEN DE TIEMPOS DE EJECUCIÓN");
+        lblTituloModal.setForeground(TEXT);
+        lblTituloModal.setFont(new Font("SansSerif", Font.BOLD, 14));
+        lblTituloModal.setHorizontalAlignment(SwingConstants.CENTER);
+
+        // Tabla de Estadísticas
+        String[] columnasEst = {"Proceso", "Hora Inicio", "Hora Fin", "Duración (s)"};
+        DefaultTableModel modeloEstadisticas = new DefaultTableModel(columnasEst, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        if (datosEstadisticas != null) {
+            for (Object[] fila : datosEstadisticas) {
+                modeloEstadisticas.addRow(fila);
+            }
+        }
+
+        JTable tablaEstadisticas = crearTabla(modeloEstadisticas);
+        JScrollPane scrollEstadisticas = new JScrollPane(tablaEstadisticas);
+        scrollEstadisticas.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+
+        // Botón Cerrar
+        JPanel panelInferior = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        panelInferior.setOpaque(false);
+
+        JButton btnCerrar = new JButton("Cerrar");
+        estilitarBotonSecundario(btnCerrar);
+        btnCerrar.addActionListener(e -> dialogEstadisticas.dispose());
+        panelInferior.add(btnCerrar);
+
+        panelModal.add(lblTituloModal, BorderLayout.NORTH);
+        panelModal.add(scrollEstadisticas, BorderLayout.CENTER);
+        panelModal.add(panelInferior, BorderLayout.SOUTH);
+
+        dialogEstadisticas.setContentPane(panelModal);
+        dialogEstadisticas.setVisible(true);
     }
 
     // Crea el panel central con memorias y consola
@@ -322,7 +364,7 @@ public class VentanaPrincipal extends JFrame {
         panelSecundarioArriba.add(cardDisco);
         panelSecundarioArriba.add(cardVirtual);
 
-        // Subpanel Consola (Abajo de Disco y Memoria Virtual)
+        // Subpanel Consola
         JPanel cardConsola = crearCard();
         cardConsola.setLayout(new BorderLayout(0, 8));
         cardConsola.add(crearEncabezadoSeccion("CONSOLA", ""), BorderLayout.NORTH);
@@ -356,7 +398,6 @@ public class VentanaPrincipal extends JFrame {
         cardConsola.add(scrollPantalla, BorderLayout.CENTER);
         cardConsola.add(panelTeclado, BorderLayout.SOUTH);
 
-        // Lado derecho central con altura de 70% Tablas y 30% Consola
         JPanel panelDerechoCentral = new JPanel(new GridBagLayout());
         panelDerechoCentral.setOpaque(false);
 
@@ -431,7 +472,6 @@ public class VentanaPrincipal extends JFrame {
         panelPrincipal.add(tituloCPU);
         panelPrincipal.add(Box.createVerticalStrut(8));
 
-        // Panel de registros con GridLayout (3 filas x 2 columnas)
         JPanel registros = new JPanel(new GridLayout(3, 2, 6, 6));
         registros.setOpaque(false);
         registros.setMaximumSize(new Dimension(Integer.MAX_VALUE, 180));
@@ -460,7 +500,6 @@ public class VentanaPrincipal extends JFrame {
         panelPrincipal.add(cardIR);
         panelPrincipal.add(Box.createVerticalStrut(14));
 
-        // Panel de Lista de Trabajos debajo del BCP/CPU
         JLabel tituloTrabajos = crearTituloCentrado("LISTA DE TRABAJOS");
         panelPrincipal.add(tituloTrabajos);
         panelPrincipal.add(Box.createVerticalStrut(8));
@@ -484,7 +523,6 @@ public class VentanaPrincipal extends JFrame {
         return panelPrincipal;
     }
 
-    // Utilidad para crear tarjetas visuales contenedoras
     private JPanel crearCard() {
         JPanel card = new JPanel();
         card.setBackground(BG_CARD);
@@ -516,7 +554,6 @@ public class VentanaPrincipal extends JFrame {
         return panel;
     }
 
-    // Crea un botón principal estilizado con colores optimizados
     private JButton crearBoton(String texto, Color color) {
         JButton boton = new JButton(texto);
         boton.setPreferredSize(new Dimension(170, 38));
@@ -607,7 +644,6 @@ public class VentanaPrincipal extends JFrame {
         return tabla;
     }
 
-    // Crea un campo de texto para los registros del CPU
     private JTextField crearCampoRegistro() {
         JTextField tf = new JTextField("0");
         tf.setEditable(false);
@@ -668,21 +704,11 @@ public class VentanaPrincipal extends JFrame {
 
     // Muestra un diálogo de error
     public void mostrarError(String mensaje) {
-        JOptionPane.showMessageDialog(
-                this,
-                mensaje,
-                "Error",
-                JOptionPane.ERROR_MESSAGE
-        );
+    public void mostrarError(String mensaje) {
     }
 
     public void mostrarInfo(String mensaje) {
-        JOptionPane.showMessageDialog(
-                this,
-                mensaje,
-                "Información",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+    public void mostrarInfo(String mensaje) {
     }
 
     /**
@@ -778,30 +804,33 @@ public class VentanaPrincipal extends JFrame {
         setDX(0);
         ticksCount = 0;
         lblTicks.setText("TICKS: " + ticksCount);
+        lblTicks.setText("TICKS: " + ticksCount);
+
+        if (btnEstadisticas != null) {
+            btnEstadisticas.setEnabled(false);
     }
 
     public void mostrarPanelConfig(boolean mostrar) {
         if (dialogConfig == null) {
             abrirDialogoConfiguracion();
         }
-        
         if (mostrar) {
             dialogConfig.setVisible(true);
         }
     }
 
-    // Getters y Setters
+
     public JButton getBtnSeleccionar() { return btnSeleccionar; }
     public JButton getBtnCargar() { return btnCargar; }
     public JButton getBtnPasoAPaso() { return btnPasoAPaso; }
     public JButton getBtnEjecutar() { return btnEjecutar; }
+    public JButton getBtnLimpiar() { return btnLimpiar; }
     public JButton getBtnLimpiar() { return btnLimpiar; }
     public JButton getBtnAbrirConfig() { return btnAbrirConfig; }
     public JButton getBtnGuardarConfig() { return btnGuardarConfig; }
 
     public JDialog getDialogConfig() { return dialogConfig; }
 
-    // Métodos delegados para mantener la compatibilidad con MiniPCController
     public int getTamanoMemoriaSeleccionado() { return spTamanoMemoria != null ? (int) spTamanoMemoria.getValue() : SystemConfig.getMemorySize(); }
     public int getLimiteKernelSeleccionado() { return spLimiteKernel != null ? (int) spLimiteKernel.getValue() : SystemConfig.getUserMemoryStart(); }
     public int getTamanoDiscoSeleccionado() { return spTamanoDisco != null ? (int) spTamanoDisco.getValue() : SystemConfig.getDiskSize(); }
