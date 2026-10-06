@@ -76,7 +76,6 @@ public class MiniPCController {
         this.interruptHandler = new InterruptHandler(this.memory, this.processList, this.scheduler, this.fileSystem);
         this.cpu = new CPU(this.memory, interruptHandler);
 
-        actualizarVista();
         agregarListeners();
 
         // Muestra GUI
@@ -221,11 +220,12 @@ public class MiniPCController {
             }
         });
     }
-    
-    public void actualizarVista() {
-        
-    }
 
+    /**
+     * Esto procesa un archivo .asm cargado, verificando su sintaxis y generando un Job y un proceso en estado NEW.
+     * @param fileData Un Map.Entry que contiene la ruta y nombre del archivo, y las líneas de código del archivo.
+     * El primer elemento (key) es un ArrayList con la ruta y el nombre del archivo, y el segundo elemento (value) es un ArrayList con las líneas de código.
+     */
     private void procesarArchivo(Map.Entry<ArrayList<String>, ArrayList<String>> fileData) {
         String filePath;
         String fileName;
@@ -340,6 +340,34 @@ public class MiniPCController {
     }
 
     /**
+     * Cuenta cuántas filas en la tabla pertenecen al área del Kernel 
+     * (desde la posición 0 hasta getUserMemoryStart() - 1).
+     */
+    private int contarFilasKernel(List<Object[]> memoryRows) {
+        int filasKernel = 0;
+        int limiteKernel = SystemConfig.getUserMemoryStart();
+
+        for (Object[] row : memoryRows) {
+            if (row != null && row.length > 0) {
+                if (row[0] != null && row[0].toString().contains("...")) {
+                    filasKernel++;
+                }
+                else {
+                    int pos = Integer.parseInt(row[0].toString().split("[^0-9]+")[0]);
+
+                    if (pos >= limiteKernel) {
+                        break;
+                    } else {
+                        filasKernel++;
+                    }
+                }
+                
+            }
+        }
+        return filasKernel;
+    }
+
+    /**
      * Esto valida que el proceso esté en un estado válido para ejecutar (READY o RUNNING).
      * Si el proceso está en estado EXIT, NEW o BLOCKED, se muestra un mensaje de error y no se permite la ejecución.
      * @return true si el proceso está en un estado válido para ejecutar, false de lo contrario.
@@ -438,7 +466,14 @@ public class MiniPCController {
             Dispatcher.saveContext(currentProcess, this.cpu, this.memory); // PENDIENTE, NO DEBERIA PERO PREGUNTAR A PROFE
             actualizarVistaCPU();
             List<Object[]> memoryRows = this.memory.getAllMemoryRows();
-            vista.actualizarTablaMemoria(memoryRows, this.cpu.getCurrentInstructionAddress()+1 - (SystemConfig.getUserMemoryStart()-SystemConfig.PCB_SIZE*this.processList.getProcessCount())); // el segundo parámetro es para resaltar instrucción actual en la tabla de memoria
+
+            int actualAddress = this.cpu.getCurrentInstructionAddress();
+            int rowsKernel = contarFilasKernel(memoryRows);
+
+            int selectedRow = rowsKernel + (actualAddress - SystemConfig.getUserMemoryStart());
+            
+            vista.actualizarTablaMemoria(memoryRows, selectedRow);
+
             vista.actualizarTablaDisco(this.disk.getAllDiskRows().get(0));
         }
     }
@@ -496,6 +531,9 @@ public class MiniPCController {
         }).start(); 
     }
 
+    /**
+     * Actualiza la vista del CPU con la información del proceso actual.
+     */
     private void actualizarVistaCPU() {
         if (this.cpu.getPCB() != null) {
             vista.setProcessID(this.cpu.getPCB().getPID());
@@ -589,6 +627,9 @@ public class MiniPCController {
         vista.mostrarInfo("Sistema reiniciado correctamente.");
     }
 
+    /**
+     * Actualiza la vista con la lista de procesos y trabajos.
+     */
     private void actualizarVistaListaProcesos() {
         List<Object[]> tableDataJob = this.jobList.getTableData();
         List<Object[]> tableDataProcess = this.processList.getTableData();
@@ -599,6 +640,9 @@ public class MiniPCController {
         vista.actualizarTablaTrabajos(tableDataFinal);
     }
 
+    /**
+     * Finaliza la simulación, deteniendo la ejecución y mostrando las estadísticas de los procesos ejecutados.
+     */
     private void finalizarSimulacion() {
         this.autoExecute = false;
         List<Object[]> datosEstadisticas = new ArrayList<>();

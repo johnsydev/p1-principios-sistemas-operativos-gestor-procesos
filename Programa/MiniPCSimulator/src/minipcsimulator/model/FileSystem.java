@@ -2,6 +2,10 @@ package minipcsimulator.model;
 
 import minipcsimulator.utils.SystemConfig;
 
+/**
+ * Clase que representa un sistema de archivos simple para el MiniPCSimulator.
+ * Permite crear, abrir, leer, escribir y eliminar archivos en un disco simulado.
+ */
 public class FileSystem {
     public enum FileSystemReturnCode {
         SUCCESS, // ordinal = 0
@@ -12,10 +16,19 @@ public class FileSystem {
     private Disk disk;
     private int lastIndexPosition = -1;
 
+    /**
+     * Constructor de la clase FileSystem.
+     * @param disk El disco simulado donde se almacenarán los archivos.
+     */
     public FileSystem(Disk disk) {
         this.disk = disk;
     }
 
+    /**
+     * Crea un archivo con el nombre especificado en el sistema de archivos.
+     * @param fileName El nombre del archivo a crear.
+     * @return Un código de retorno que indica el resultado de la operación.
+     */
     public int createFile(String fileName) {
         if (getFileIndex(fileName) != null) {
             return FileSystemReturnCode.FILE_ALREADY_EXISTS.ordinal();

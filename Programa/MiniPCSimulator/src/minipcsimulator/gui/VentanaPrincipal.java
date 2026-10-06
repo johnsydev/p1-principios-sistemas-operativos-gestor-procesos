@@ -167,14 +167,14 @@ public class VentanaPrincipal extends JFrame {
         panelPrincipal.add(Box.createVerticalStrut(14));
 
         // Botón de Estadísticas (Deshabilitado por defecto hasta finalizar la simulación)
-        btnEstadisticas = crearBoton("📊 Estadísticas", PURPLE);
+        btnEstadisticas = crearBoton("Estadísticas", PURPLE);
         btnEstadisticas.setEnabled(false);
         panelPrincipal.add(btnEstadisticas);
 
         panelPrincipal.add(Box.createVerticalStrut(8));
 
         // Botón para abrir el diálogo modal de configuración
-        btnAbrirConfig = crearBoton("⚙ Configuración", GRAY);
+        btnAbrirConfig = crearBoton("Configuración", GRAY);
         panelPrincipal.add(btnAbrirConfig);
 
         return panelPrincipal;
@@ -704,11 +704,21 @@ public class VentanaPrincipal extends JFrame {
 
     // Muestra un diálogo de error
     public void mostrarError(String mensaje) {
-    public void mostrarError(String mensaje) {
+        JOptionPane.showMessageDialog(
+                this,
+                mensaje,
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+        );
     }
 
     public void mostrarInfo(String mensaje) {
-    public void mostrarInfo(String mensaje) {
+        JOptionPane.showMessageDialog(
+                this,
+                mensaje,
+                "Información",
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
     /**
@@ -808,6 +818,7 @@ public class VentanaPrincipal extends JFrame {
 
         if (btnEstadisticas != null) {
             btnEstadisticas.setEnabled(false);
+        }
     }
 
     public void mostrarPanelConfig(boolean mostrar) {
@@ -825,9 +836,9 @@ public class VentanaPrincipal extends JFrame {
     public JButton getBtnPasoAPaso() { return btnPasoAPaso; }
     public JButton getBtnEjecutar() { return btnEjecutar; }
     public JButton getBtnLimpiar() { return btnLimpiar; }
-    public JButton getBtnLimpiar() { return btnLimpiar; }
     public JButton getBtnAbrirConfig() { return btnAbrirConfig; }
     public JButton getBtnGuardarConfig() { return btnGuardarConfig; }
+    public JButton getBtnEstadisticas() { return btnEstadisticas; }
 
     public JDialog getDialogConfig() { return dialogConfig; }
 
