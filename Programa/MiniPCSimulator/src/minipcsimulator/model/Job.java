@@ -15,6 +15,7 @@ public class Job {
     int diskStartAddress;
     int size;
     boolean isLoadedInMemory = false;
+    int startAddressInRAM;
 
     public Job(String pathFile, String nameFile, ArrayList<String> lines, ArrayList<ArrayList<String>> asmArray) {
         this.pathFile = pathFile;
@@ -27,6 +28,14 @@ public class Job {
 
     public void setDiskStartAddress(int diskStartAddress) {
         this.diskStartAddress = diskStartAddress;
+    }
+
+    public void setStartAddressInRAM(int startAddressInRAM) {
+        this.startAddressInRAM = startAddressInRAM;
+    }
+
+    public int getStartAddressInRAM() {
+        return startAddressInRAM;
     }
 
     public int getDiskStartAddress() {

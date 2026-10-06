@@ -277,6 +277,7 @@ public class MiniPCController {
             return;
         }
 
+        job.setStartAddressInRAM(jobAddressRAM);
         memory.setPosition(jobAddressRAM, new MemoryRegister("PID = " + job.getAssignedPID(), job.getAssignedPID()));
         memory.setPosition(jobAddressRAM + 1, new MemoryRegister("DiskIndexPosition = " + fileIndex.getDiskIndexPosition(), fileIndex.getDiskIndexPosition()));
 
@@ -286,6 +287,8 @@ public class MiniPCController {
         vista.deshabilitarConfiguraciones();
         ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
         vista.actualizarTablaDisco(diskLists.get(0));
+        List<Object[]> memoryRows = this.memory.getAllMemoryRows();
+        vista.actualizarTablaMemoria(memoryRows, -1);
         vista.actualizarTablaMemoriaVirtual(diskLists.get(1));
     }
 

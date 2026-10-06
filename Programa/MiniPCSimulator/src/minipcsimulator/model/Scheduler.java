@@ -54,6 +54,9 @@ public class Scheduler {
 
                 processList.addProcess(process);
                 jobList.removeNextJob();
+                int addrInRAM = job.getStartAddressInRAM();
+                memory.setPosition(addrInRAM, null);
+                memory.setPosition(addrInRAM + 1, null);
                 //Dispatcher.saveContext(process, cpu, memory); // PENDIENTE, NO DEBERIA PERO PREGUNTAR A PROFE
 
             }
