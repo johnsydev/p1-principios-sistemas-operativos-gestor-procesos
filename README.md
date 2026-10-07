@@ -1,20 +1,18 @@
-# Mini PC Simulator (🛠️ Proyecto en construcción)
-
-![Badge en Desarollo](https://img.shields.io/badge/STATUS-EN%20DESAROLLO-green)
-
-> [!WARNING]
-> La presente documentación no se encuentra actualizada con respecto al estado del proyecto, será actualizada a medida que avance el proyecto o cuando se finalicen sus etapas claves de desarrollo.
+# Mini PC Simulator
 
 <p align="left">
-  <img src="https://res.cloudinary.com/dpuuo4mfh/image/upload/v1789428731/simulatorimgt1so2_r6cqry.png" width="1000" alt="Vista previa del simulador">
+  <img src="https://res.cloudinary.com/dpuuo4mfh/image/upload/v1789428731/simulatorimgt1so2_r6cqry.png" width="1000" alt="Vista previa del simulador">
 </p>
 
 ## Información del proyecto
 
-**Estudiante:** 2024178835 - Johnsy Steven López Aguilar  
-**Curso:** Principios de Sistemas Operativos  
-**Estado del proyecto:** Escala de 1 a 5
+**Estudiante:** 2024178835 - Johnsy Steven López Aguilar  
+**Curso:** Principios de Sistemas Operativos  
+**Estado del proyecto:** 1 (Completo)
 **Enlace del video:** [Ver en YouTube](https://youtu.be/xyo6f_jqHMA)
+
+> [!IMPORTANT]
+> La estrategia de seguridad se encuentra [aquí](#estrategia-de-seguridad), el diagrama de paquetes se encuentra [aquí](#diagrama-de-paquetes) y la explicación del diseño del sistema se encuentra ampliamente explicada en este README.
 
 ---
 
@@ -49,6 +47,9 @@ En particular, el simulador busca representar:
 - La función del Kernel como controlador del sistema.
 - La carga de programas desde archivos externos.arios.
 - El manejo de memoria disponible para los programas.
+- El manejo del disco y memoria virtual básico.
+- El manejo del planificador de procesos simple.
+- El manejo de interrupciones e I/O.
 
 Esta tarea no pretende ser una implementación de un sistema operativo real, sino una herramienta que simula el comportamiento de un sistema operativo y permite comprender conceptos fundamentales relacionados con el curso de Principios de Sistemas Operativos.
 
@@ -74,13 +75,13 @@ No es necesario instalar herramientas adicionales para utilizar la aplicación u
 El repositorio puede clonarse mediante Git:
 
 ```bash
-git clone https://github.com/johnsydev/t1-principios-sistemas-operativos-mini-pc.git
+git clone https://github.com/johnsydev/p1-principios-sistemas-operativos-gestor-procesos.git
 ````
 
 Después de clonar el repositorio, ingresar a la carpeta del proyecto:
 
 ```bash
-cd t1-principios-sistemas-operativos-mini-pc
+cd p1-principios-sistemas-operativos-gestor-procesos
 ```
 
 ---
@@ -143,9 +144,9 @@ Los scripts de compilación y ejecución se encuentran en el archivo `compilar.b
 
 ## 1. Configurar la memoria
 
-Al iniciar la aplicación, el usuario observa una ventana con todos los componentes visuales y sin ningún programa cargado.
+Al iniciar la aplicación, el usuario observa una ventana con todos los componentes visuales y sin ningún programa cargado. Inmediatamente se abrirá la ventana de configuración del sistema.
 
-El usuario puede establecer la cantidad de memoria RAM y el espacio reservado para el Kernel en la sección ubicada en la parte inferior derecha.
+El usuario puede establecer la cantidad de memoria RAM y el espacio reservado para el Kernel en la sección ubicada en la parte inferior derecha. Además, se puede elegir el tamaño del disco y la memoria virtual.
 
 Después de seleccionar los valores deseados, se debe presionar: **Aplicar configuración**
 
@@ -159,8 +160,10 @@ La configuración predeterminada es:
 
 * **Memoria principal:** 256 celdas.
 * **Reservado para Kernel:** 64 celdas.
+* **Tamaño del disco:** 512 celdas.
+* **Tamaño de la memoria virtual:** 64 celdas.
 
-### Límites de memoria
+### Límites de memoria  CAMBIAR
 
 - El tamaño máximo para la memoria principal es de 65536 celdas.
 - El tamaño mínimo para la memoria principal es de 128 celdas.
@@ -185,69 +188,89 @@ Para seleccionar un programa se utiliza el explorador de archivos disponible en 
 
 El archivo seleccionado contiene las instrucciones que posteriormente serán procesadas por el simulador.
 
-En la carpeta `Ejemplo` se encuentra un ejemplo de programa válido, que contiene la totalidad de instrucciones posibles para el simulador, debe seguir esa sintaxis.
+En la carpeta `Ejemplo` se encuentran ejemplos de programa válidos, que contienen la totalidad de instrucciones posibles para el simulador, se debe seguir esa sintaxis.
 
-Al seleccionar el archivo ocurre una serie de procesos:
-1. Se lee el contenido del archivo (FileManager).
-2. Se analizan sus líneas y se descartan las líneas vacías (AsmParser).
-4. Se valida la sintaxis de las instrucciones (AsmParser).
-5. Se verifican los rangos permitidos de números y se descartan las instrucciones no validas (AsmParser).
-6. Se crea el proceso en estado `NEW` (MiniPCController).
-7. Las instrucciones válidas se convierten a su representación interna y se almacena en disco en lista de instrucciones (Loader).
-8. Se actualiza la tabla de instrucciones en la GUI (VentanaPrincipal).
+Al seleccionar los archivos ocurre una serie de procesos:
+1. Se lee el contenido de cada archivo seleccionado (FileManager).
+2. Se analizan sus líneas, descartando las vacías y validando la sintaxis de las instrucciones (AsmParser).
+3. Se verifican los rangos numéricos permitidos y el formato correcto de las nuevas interrupciones (AsmParser).
+4. Las instrucciones válidas se convierten a su representación interna y se almacenan de forma persistente en la sección de programas del Disco (Loader).
+5. Se crea una entrada en el Índice de Archivos del disco para registrar la ubicación del programa (Loader).
+6. Se genera un trabajo (`Job`) que representa al programa en estado `NEW` y se añade a la cola de la Lista de Trabajos (`JobList`).
+7. Se actualizan las tablas de procesos, trabajos y el disco en la interfaz gráfica (VentanaPrincipal).
 
 ---
 
-## 3. Cargar el programa
+## 3. Cargar los programas
 
-Después de seleccionar el archivo `.asm`, se debe presionar:
+Después de seleccionar los archivos `.asm`, se debe presionar:
 
-**Cargar programa**
+**Cargar programas**
 
-En esta etapa ocurre una serie de procesos:
+En esta etapa básicamente inicia la simulación, donde se encuentra en acción el Planificador (`Scheduler`) aplicando la política FCFS (First-Come, First-Served):
 
-1. Se valida si existe un proceso cargado.
-2. El programa es colocado en las posiciones disponibles de la memoria RAM (Loader).
-3. Se cambia el estado del proceso a `READY` (MiniPCController).
-
-Si el programa requiere más memoria de la disponible para el usuario, el simulador informa que no existe suficiente espacio para cargarlo.
+1. El planificador toma los trabajos (`Jobs`) almacenados en la `JobList`.
+2. Para cada trabajo, crea su Bloque de Control de Proceso (PCB) en la región reservada para el Kernel en la RAM.
+3. Intenta asignar espacio para las instrucciones del programa en la memoria RAM de usuario:
+   - **Si hay espacio en RAM:** Las instrucciones se cargan a la RAM y el proceso cambia su estado a `READY`.
+   - **Si la RAM está llena pero hay espacio en Memoria Virtual (Swap):** Las instrucciones se guardan en la sección de memoria virtual del disco y el proceso cambia su estado a `READY_SUSPENDED`.
+4. Si la RAM y la Memoria Virtual están totalmente llenas, el trabajo permanece en espera en la cola hasta que se libere espacio.
+5. Se actualizan la Lista de Procesos activos, las celdas de la RAM, la Memoria Virtual y las tablas de la interfaz gráfica.
 
 ---
 
 ## 4. Ejecutar el programa
 
-Una vez que el programa ha sido cargado correctamente, existen dos formas principales de ejecución.
+Una vez que los programas han sido admitidos y sus procesos creados, existen dos modalidades para ejecutarlos.
 
 ### Paso a paso
 
-La opción **Paso a paso** permite ejecutar una instrucción a la vez.
+La opción **Paso a paso** permite ejecutar una sola instrucción a la vez correspondiente al proceso que se encuentra en ejecución (`RUNNING`).
 
 Esta modalidad resulta especialmente útil para observar cómo cambian:
 
-* El `PC`.
-* El `AC`.
-* Los registros `AX`, `BX`, `CX` y `DX`.
-* La memoria.
-* El estado del proceso.
-* La instrucción que está siendo ejecutada.
+* El `PC` (Program Counter) y el `IR` (Instruction Register).
+* El acumulador `AC` y los registros generales `AX`, `BX`, `CX` y `DX`.
+* La bandera de estado `PSW` (Program Status Word) y la pila (Stack).
+* El contenido de las celdas de la RAM y la Memoria Virtual.
+* Las transiciones de estado en la Lista de Procesos (por ejemplo, cuando un proceso finaliza en `EXIT` y el planificador mueve automáticamente a un proceso de `READY_SUSPENDED` a `READY`).
+* Las llamadas al sistema a través de interrupciones (`INT`).
 
-De esta manera se puede observar visualmente el ciclo de búsqueda y ejecución de las instrucciones.
+De esta manera se puede analizar en detalle el ciclo de búsqueda y ejecución de las instrucciones, así como la gestión interna del Kernel.
 
 ### Ejecutar todo
 
-La opción **Ejecutar todo** ejecuta automáticamente las instrucciones restantes del programa hasta finalizar su ejecución.
+La opción **Ejecutar todo** procesa automáticamente las instrucciones de forma secuencial y continua.
 
-Esta opción permite comprobar rápidamente el resultado final del programa sin tener que avanzar manualmente por cada instrucción.
+Si una instrucción requiere entrada por teclado (interrupción `INT 09H`), la ejecución automática se pausará, el proceso pasará al estado `BLOCKED` y la interfaz habilitará el campo de entrada correspondiente. Una vez ingresado el dato, el proceso regresará a `READY` y la ejecución continuará automáticamente.
+
+Al finalizar todos los procesos, el simulador muestra un panel de **Estadísticas**, detallando los tiempos de llegada, ejecución y finalización (expresados en *ticks* del reloj del sistema) de cada proceso.
+
+---
+
+# Documentación solicitada
+
+## Estrategia de seguridad
+
+### Protección de programas
+
+Se implementaron validaciones para evitar que un programa pueda saltar a una dirección fuera de su espacio de memoria. Dada la arquitectura del proyecto, con implementar esta validación en el JMP es suficiente para que también se valide para JE y JNE. Dado a que los programas se almacenan continuamente, el sistema conoce en cual posición de memoria inicia cada programa, su alcance (tamaño) y por ende, donde debería de terminar su alcance. Cualquier intento de acceso fuera del programa emitiría el error, cerrando el programa con el estado EXIT y notificando el error en la consola, para posteriormente continuar con la ejecución de otros programas.
+
+## Diagrama de paquetes
+
+<p align="left">
+  <img src="https://res.cloudinary.com/dpuuo4mfh/image/upload/v1791374705/diagramapaquetes_pfwyaq.png" width="1000" alt="Diagrama de paquetes del proyecto">
+</p>
 
 ---
 
 # Arquitectura del sistema
 
-El proyecto utiliza una separación por responsabilidades entre los diferentes componentes. La lógica principal se encuentra distribuida entre el modelo de hardware simulado, el controlador que representa al Kernel, los servicios encargados de procesar programas y la interfaz gráfica.
+El proyecto utiliza una separación por responsabilidades entre los diferentes componentes. La lógica principal se encuentra distribuida entre el modelo de hardware simulado (CPU, RAM y Disco), el controlador que representa al Kernel, los servicios encargados de procesar programas y la interfaz gráfica.
 
 ## Estructura de archivos
 
-``` text
+```text
 t1-principios-sistemas-operativos-mini-pc/
 ├── compilar.bat
 ├── ejecutar.bat
@@ -255,7 +278,6 @@ t1-principios-sistemas-operativos-mini-pc/
 ├── Ejemplo/
 │   └── file.asm
 └── Programa/
-    ├── readme.md
     └── MiniPCSimulator/
         ├── build.xml
         ├── manifest.mf
@@ -272,161 +294,184 @@ t1-principios-sistemas-operativos-mini-pc/
         │       │   └── VentanaPrincipal.java
         │       ├── model/
         │       │   ├── CPU.java
+        │       │   ├── Disk.java
         │       │   ├── Dispatcher.java
+        │       │   ├── FileIndex.java
+        │       │   ├── FileSystem.java
         │       │   ├── Instruction.java
+        │       │   ├── InterruptHandler.java
+        │       │   ├── Job.java
+        │       │   ├── JobList.java
         │       │   ├── Loader.java
         │       │   ├── MainMemory.java
         │       │   ├── MemoryRegister.java
         │       │   ├── PCB.java
-        │       │   └── Process.java
+        │       │   ├── Process.java
+        │       │   ├── ProcessList.java
+        │       │   ├── Scheduler.java
+        │       │   └── SystemClock.java
         │       ├── services/
         │       │   ├── AsmParser.java
         │       │   └── FileManager.java
         │       └── utils/
         │           └── SystemConfig.java
         └── test/
+
 ```
 
 ## Funcionalidades de cada componente
 
-| Componente    | Capa        | Responsabilidad                                                                                                                                           |
-| ----------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MiniPCSimulator.java`  | Principal   | Punto de entrada de la aplicación. Inicializa la interfaz y configura el tema visual utilizando FlatLaf.                                                  |
-| `MiniPCController.java` | Controlador | Actúa como el controlador principal del sistema y representa las funciones básicas del Kernel. Coordina la carga, ejecución y administración del proceso, así como los handlers de eventos de la interfaz gráfica. |
-| `VentanaPrincipal.java` | Vista       | Implementa la interfaz gráfica utilizando Swing y FlatLaf. Permite configurar el sistema, cargar programas y visualizar el estado de la Mini PC.          |
-| `CPU.java`              | Modelo      | Representa el procesador. Implementa la lógica relacionada con los ciclos de búsqueda (*fetch*) y ejecución (*execute*) de instrucciones.                 |
-| `MainMemory.java`       | Modelo      | Representa la memoria RAM utilizada por el sistema y proporciona acceso a sus posiciones de memoria.                                                      |
-| `MemoryRegister.java`   | Modelo      | Representa una posición individual de memoria y permite almacenar instrucciones o valores numéricos.                                                      |
-| `Process.java`          | Modelo      | Representa un proceso y agrupa sus instrucciones junto con la información necesaria para su ejecución.                                                    |
-| `PCB.java`              | Modelo      | Representa el Bloque de Control de Proceso (BCP en español), almacenando información como el identificador, estado y registros asociados al proceso.             |
-| `Loader.java`           | Modelo    | Se encarga de cargar el programa y escribir sus instrucciones en las posiciones correspondientes de la memoria.                                           |
-| `Dispatcher.java`       | Modelo    | Modela las transiciones y cambios de estado relacionados con la ejecución del proceso.                                                                    |
-| `AsmParser.java`        | Servicio    | Analiza los archivos `.asm`, valida la sintaxis de las instrucciones, verifica rangos y descarta líneas vacías.                                           |
-| `FileManager.java`      | Servicio    | Gestiona la selección y lectura de archivos `.asm` mediante el explorador de archivos.                                                                    |
-| `SystemConfig.java`     | Utilidad    | Contiene las configuraciones generales del sistema, como el tamaño de la RAM y el espacio reservado para el Kernel, entre otras.                                     |
-
+| Componente | Capa | Responsabilidad |
+| --- | --- | --- |
+| `MiniPCSimulator.java` | Principal | Punto de entrada de la aplicación. Inicializa la interfaz gráfica y configura el tema visual utilizando FlatLaf. |
+| `MiniPCController.java` | Controlador | Actúa como el Kernel principal del sistema. Coordina la cola de trabajos, el planificador, la ejecución de la CPU, las interrupciones y los eventos de la interfaz gráfica. |
+| `VentanaPrincipal.java` | Vista | Implementa la interfaz gráfica con Swing y FlatLaf. Permite configurar el sistema, cargar programas, ingresar datos por teclado y visualizar el estado de la RAM, Disco, Memoria Virtual, CPU y estadísticas. |
+| `CPU.java` | Modelo | Representa el procesador. Aplica el ciclo de búsqueda (*fetch*) y ejecución (*execute*), gestiona los registros (`AX`, `BX`, `CX`, `DX`, `AC`, `PC`, `IR`, `PSW`) y el puntero de la Pila (*Stack Pointer*). |
+| `MainMemory.java` | Modelo | Representa la memoria RAM del sistema. Está dividida entre el área del Kernel (donde se guardan los BCP) y el área de Usuario. |
+| `Disk.java` | Modelo | Representa el almacenamiento secundario. Está dividido en áreas para el Índice de Archivos, el área de programas/archivos de usuario y la Memoria Virtual (área de Swap). |
+| `MemoryRegister.java` | Modelo | Representa una celda individual de memoria (tanto en RAM como en Disco), permitiendo almacenar instrucciones, atributos del BCP o datos numéricos. |
+| `Process.java` | Modelo | Representa un proceso activo en el sistema, vinculando sus instrucciones con la información del BCP y su ciclo de vida. |
+| `PCB.java` | Modelo | Representa el Bloque de Control de Proceso (BCP), almacenando el ID, estado, PC, dirección base, tamaño, registros guardados, puntero de pila y métricas de tiempo. |
+| `ProcessList.java` | Modelo | Administra la lista de procesos activos en el sistema que se encuentran en RAM o en Memoria Virtual. |
+| `Job.java` | Modelo | Representa un trabajo que ha sido leído desde un archivo `.asm` y está listo para ser evaluado por el planificador. |
+| `JobList.java` | Modelo | Gestiona la cola de trabajos pendientes (`NEW`) que esperan ser admitidos en el sistema. |
+| `Scheduler.java` | Modelo | Implementa el planificador a largo y mediano plazo utilizando la política FCFS. Decide si un trabajo entra a la RAM o pasa a la Memoria Virtual (`READY_SUSPENDED`), y gestiona el swap cuando se libera RAM. |
+| `Dispatcher.java` | Modelo | Encargado del cambio de contexto. Restaura los registros del CPU con los datos del BCP del proceso entrante y guarda el estado al pausar o suspender. |
+| `Loader.java` | Modelo | Copia el código fuente traducido al Disco, crea su entrada en el Índice de Archivos y realiza la carga de instrucciones hacia la RAM o la Memoria Virtual según disponga el Scheduler. |
+| `InterruptHandler.java` | Modelo | Atiende las interrupciones de software y de I/O (`INT 09H`, `INT 10H`, `INT 20H`, `INT 21H`), pausando la ejecución cuando se requiere entrada del usuario o gestionando llamadas al sistema de archivos. |
+| `FileSystem.java` | Modelo | Modela el sistema de archivos sobre el Disco simulado. Permite crear, abrir, escribir, leer y cerrar archivos mediante llamadas al sistema. |
+| `FileIndex.java` | Modelo | Gestiona la tabla de metadatos del Disco (índice de archivos), registrando nombres, tamaños y direcciones iniciales de los archivos almacenados. |
+| `SystemClock.java` | Modelo | Simula el reloj del sistema, incrementando los *ticks* de tiempo en cada ciclo para medir la duración de los procesos. |
+| `AsmParser.java` | Servicio | Analiza los archivos `.asm`, valida la sintaxis de las instrucciones tradicionales e interrupciones, verifica rangos y descarta líneas vacías. |
+| `FileManager.java` | Servicio | Administra la lectura y selección de múltiples archivos desde el sistema operativo anfitrión. |
+| `SystemConfig.java` | Utilidad | Centraliza los parámetros configurables del sistema, como el tamaño de la RAM, el área del Kernel, el tamaño del Disco y el espacio de Memoria Virtual. |
 
 ---
 
 # Funcionamiento interno
 
-## Carga de un programa
+## Carga y Planificación de programas
 
-El proceso de carga comienza cuando el usuario selecciona un archivo `.asm`.
+El flujo comienza cuando el usuario selecciona uno o varios archivos `.asm`.
 
-El `FileManager` se encarga de obtener el archivo seleccionado y proporcionar su contenido al sistema. Posteriormente, `AsmParser` analiza cada línea y determina si cumple con las reglas de sintaxis establecidas.
+El `FileManager` lee los archivos y `AsmParser` los valida. Cada programa válido es guardado en la sección de código del Disco simulado mediante el `Loader` y se registra en el Índice de Archivos (`FileIndex`). Posteriormente, cada programa crea un trabajo (`Job`) en la `JobList` con el estado `NEW`.
 
-Las instrucciones que superan la validación son procesadas para obtener su representación interna. Esta representación es utilizada por el `Loader`, que cuando se presiona en `Cargar programa` se encarga de escribir las instrucciones en las posiciones disponibles de la memoria RAM.
+Cuando se presiona **Cargar programa**, entra en acción el `Scheduler` con la política **FCFS (First-Come, First-Served)**. El planificador toma el primer trabajo de la cola, crea su BCP en el espacio reservado para el Kernel en la RAM y evalúa el espacio disponible en la RAM de usuario:
 
-De esta manera, el programa deja de existir únicamente como un archivo externo y pasa a estar representado dentro de la memoria de la Mini PC.
+* **Si hay espacio suficiente en RAM:** El `Loader` copia las instrucciones a la RAM y el proceso pasa al estado `READY`.
+* **Si la RAM no es suficiente pero hay espacio en Memoria Virtual (Swap):** Las instrucciones se guardan en el área de Swap del Disco y el proceso pasa al estado `READY_SUSPENDED`.
+* **Si no hay espacio en RAM ni en Memoria Virtual:** El trabajo permanece en la `JobList` esperando a que se libere espacio.
+
+Cuando un proceso en ejecución termina y pasa al estado `EXIT`, libera su espacio en la RAM. El `Scheduler` detecta esto inmediatamente y realiza un proceso de **Swap-In**, tomando un proceso en estado `READY_SUSPENDED`, trasladando sus instrucciones desde la Memoria Virtual a la RAM liberada y cambiando su estado a `READY`.
 
 ---
 
-## Ciclo de ejecución
+## Ciclo de ejecución e Interrupciones
 
-La ejecución del programa se basa en el ciclo fundamental de:
+La ejecución se basa en el ciclo fundamental de:
 
 ```text
 FETCH -> EXECUTE
+
 ```
 
-Durante el **FETCH**, el procesador utiliza el `PC` (Program Counter) para identificar la posición de memoria que contiene la siguiente instrucción.
+Durante el **FETCH**, la CPU utiliza el `PC` del proceso activo para leer la instrucción directamente desde la RAM.
 
-La instrucción es obtenida desde la memoria y posteriormente procesada por el CPU.
+Durante el **EXECUTE**, el procesador interpreta la instrucción y ejecuta la operación. Si la instrucción modifica registros (`AX`, `BX`, `CX`, `DX`, `AC`), banderas (`PSW`) o la pila, los cambios se reflejan inmediatamente en el procesador.
 
-Durante el **EXECUTE**, el procesador interpreta la instrucción y realiza la operación correspondiente. Dependiendo de la instrucción, pueden modificarse los registros internos del CPU. 
+Si la CPU encuentra una instrucción de interrupción (`INT`), delega la atención al `InterruptHandler`:
 
-Por motivos de diseño escalable, se utilizaron `Enums` para facilitar la representación de las instrucciones y su utilización en `switch` para cada caso. Por cada tipo de operación se realizó un método distinto dentro de la clase `CPU` para separar la lógica de ejecución de cada instrucción.
-
-Este proceso se repite hasta que el programa finaliza.
-
-La opción **Paso a paso** permite observar este comportamiento de manera individual, mientras que **Ejecutar todo** realiza el proceso de forma continua.
+* **`INT 09H` (Entrada por teclado):** Cambia el estado del proceso a `BLOCKED`, pausa la CPU y habilita la caja de texto en la GUI. Cuando el usuario ingresa el dato, la interrupción guarda el valor en el registro `AH` (o en la celda correspondiente), cambia el proceso a `READY` y la ejecución puede continuar.
+* **`INT 10H` (Salida en pantalla):** Muestra el valor almacenado en los registros directamente en la consola visual de la GUI.
+* **`INT 20H` (Terminar programa):** Finaliza el proceso, calcula sus estadísticas finales de tiempo y marca su estado como `EXIT`.
+* **`INT 21H` (Sistema de Archivos):** Permite interactuar con el `FileSystem` para crear (`AH=3CH`), abrir (`AH=3DH`), escribir (`AH=40H`), leer (`AH=41H`) o cerrar (`AH=4DH`) archivos en el disco simulado.
 
 ---
 
-# Memoria
+# Memoria y Disco
 
-La memoria simulada está organizada en celdas individuales representadas mediante objetos `MemoryRegister`. Este objeto se implementó debido a que al necesitar guardar información de BCP u otras cosas tener un array de `Instruction` no era suficiente.
+El sistema organiza la memoria simulada en dos estructuras físicas separadas: **RAM** y **Disco**, ambas estructuradas mediante objetos `MemoryRegister` para almacenar tanto instrucciones como datos.
 
-Cada posición puede contener información asociada con una instrucción o un valor numérico.
+### Memoria RAM (`MainMemory`)
 
-La interfaz muestra información de la memoria para facilitar la observación de lo que está ocurriendo internamente.
+Se divide en dos áreas principales:
 
-La memoria se divide conceptualmente entre:
+* **Espacio del Kernel:** Reservado para almacenar los BCP (PCB) de los procesos admitidos en el sistema.
+* **Espacio de Usuario:** Disponible para cargar las instrucciones de los programas que están listos para ejecutarse (`READY` o `RUNNING`).
 
-* **Espacio reservado para el Kernel.**
-* **Espacio disponible para los programas de usuario.**
+### Disco (`Disk`)
 
-Si un programa requiere más posiciones de las disponibles en el área de usuario, el sistema impide su carga y muestra un aviso indicando que no existe suficiente memoria.
+Se divide conceptualmente en tres zonas:
+
+* **Índice de archivos (File Index):** Almacena la tabla con la lista de archivos guardados en el disco, sus tamaños y sus direcciones físicas de inicio.
+* **Área de archivos y programas:** Almacena las instrucciones originales de los programas cargados y los archivos creados dinámicamente mediante la interrupción `INT 21H`.
+* **Memoria Virtual (Área de Swap):** Espacio reservado para almacenar el código de los procesos en estado `READY_SUSPENDED` que no cupieron en la RAM al momento de ser admitidos.
 
 ---
 
 # Registros y CPU
 
-El procesador simulado cuenta con los siguientes registros principales:
+El procesador simulado cuenta con los siguientes elementos de hardware:
 
-| Registro | Función                                                                                                   |
-| -------- | --------------------------------------------------------------------------------------------------------- |
-| `AX`     | Registro general utilizado durante las operaciones del procesador.                                        |
-| `BX`     | Registro general utilizado para almacenar valores durante la ejecución.                                   |
-| `CX`     | Registro general utilizado durante las operaciones del programa.                                          |
-| `DX`     | Registro general utilizado durante las operaciones del programa.                                          |
-| `AC`     | Acumulador utilizado para almacenar resultados y valores temporales.                                      |
-| `PC`     | Program Counter. Indica la posición de memoria asociada con la siguiente instrucción que debe procesarse. |
-| `IR`     | Instruction Register. Contiene la instrucción en ejecución.                   |
-| `PCB`    | Contiene la información administrativa correspondiente al proceso en ejecución.                           |
-
-La interfaz gráfica muestra estos elementos para que el usuario pueda observar cómo cambian durante la ejecución.
+| Registro | Función |
+| --- | --- |
+| `AX` | Registro general A. Utilizado para operaciones aritméticas y para pasar códigos de función en interrupciones. |
+| `BX` | Registro general B. Utilizado para almacenar valores o direcciones auxiliares. |
+| `CX` | Registro general C. Utilizado como contador o registro de propósito general. |
+| `DX` | Registro general D. Utilizado en operaciones de datos e I/O. |
+| `AC` | Acumulador. Almacena los resultados de las operaciones procesadas por la ALU. |
+| `PC` | Program Counter. Indica la dirección de memoria de la siguiente instrucción a ejecutar. |
+| `IR` | Instruction Register. Guarda la instrucción actual que está siendo procesada. |
+| `PSW` | Program Status Word. Guarda las banderas del sistema (como la bandera de Cero `Z` para saltos condicionales). |
+| `Pila` | Pila del proceso para operaciones `PUSH` y `POP`. |
 
 ---
 
-# Proceso y PCB
+# Proceso, BCP y Estadísticas
 
-Cada programa cargado es tratado como un proceso dentro del simulador.
+Cada programa admitido en el sistema es gestionado a través de su **BCP (Bloque de Control de Proceso)**.
 
-El proceso mantiene sus instrucciones y se relaciona con un **PCB (Process Control Block / Bloque de Control de Proceso)**.
+El ciclo de vida de un proceso pasa por los siguientes estados:
 
-El PCB permite representar la información necesaria para administrar el proceso, incluyendo su identificador, estado y registros.
+* **NEW:** El archivo fue leído y está en la `JobList` esperando a ser evaluado por el planificador.
+* **READY:** El proceso está cargado en la memoria RAM y espera su turno en la CPU.
+* **READY_SUSPENDED:** El proceso fue admitido, pero sus instrucciones se guardaron en la Memoria Virtual a la espera de espacio libre en RAM.
+* **RUNNING:** El proceso tiene el control de la CPU y sus instrucciones están siendo ejecutadas.
+* **BLOCKED:** El proceso se pausó a la espera de una entrada por teclado (`INT 09H`).
+* **BLOCKED_SUSPENDED:** El proceso se pausó a la espera de espacio libre en RAM, pero sus instrucciones se guardaron en la Memoria Virtual a la espera de espacio libre en RAM.
+* **EXIT:** El proceso terminó su ejecución, liberó su espacio en memoria y guardó sus estadísticas finales.
 
-La información del PCB se mantiene asociada al proceso y también se representa dentro de la memoria simulada. Esta decisión permite visualizar de manera directa las posiciones utilizadas por el sistema para almacenar la información administrativa del proceso.
+### Almacenamiento del BCP en RAM
 
-Por cada espacio disponible en la memoria se crea un objeto `MemoryRegister` para representar cada atributo del PCB (8 en total). Se actualiza en cada paso debido a lo solicitado para esta tarea, sin embargo, en futuras actualizaciones este comportamiento puede cambiar.
+Los atributos de cada BCP se escriben físicamente dentro de las celdas del área del Kernel en la RAM simulada. Cada campo (ID, estado, PC, dirección base, tamaño, registros generales, puntero de pila, etc.) ocupa una celda de memoria, lo que permite observar visualmente cómo el Kernel guarda el estado administrativo de cada proceso.
 
-La interfaz del CPU utiliza una estructura visual similar a la información representada en el PCB, facilitando la comparación entre el estado administrativo del proceso y el estado actual del procesador.
+### Registro de Estadísticas
+
+A través del `SystemClock`, el sistema registra el tiempo (en *ticks*) en que cada proceso realiza sus transiciones. Al finalizar la ejecución de todos los procesos, el simulador muestra un resumen de duración de cada proceso.
 
 ---
 
 # Validación de programas
 
-Antes de cargar un programa en memoria, el archivo `.asm` pasa por un proceso de validación.
+Antes de almacenar un programa en el Disco, el archivo `.asm` es validado por la clase `AsmParser`.
 
-El `AsmParser` se encarga de comprobar que las instrucciones cumplan con las reglas establecidas por el simulador.
+Entre las comprobaciones realizadas se incluyen:
 
-Entre las validaciones realizadas se encuentran:
+* Sintaxis correcta de las instrucciones tradicionales (`MOV`, `ADD`, `SUB`, `JMP`, `CMP`, etc.).
+* Validación de las nuevas instrucciones e interrupciones (`INT 09H`, `INT 10H`, `INT 20H`, `INT 21H`, `PUSH`, `POP`, etc.).
+* Verificación del número y tipo de operandos permitidos (registros, constantes o direcciones).
+* Verificación de rangos numéricos permitidos para evitar valores fuera de límite.
+* Eliminación y descarte automático de líneas vacías o comentarios.
 
-* Sintaxis de las instrucciones.
-* Formato de los operandos.
-* Rangos permitidos.
-* Estructura esperada de cada tipo de instrucción.
-* Identificación y descarte de líneas vacías.
-
-Una línea no se considera una instrucción válida simplemente por existir dentro del archivo. Debe superar los filtros sintácticos establecidos y contener una instrucción procesable.
-
-Esto evita que contenido vacío o instrucciones incorrectas sean trasladados a la memoria como parte del programa.
-
-Al descartar las líneas vacías se evita el consumo de memoria innecesario, optimizando lo dicho de que "cada línea del programa es un espacio en la memoria", haciendo que únicamente las líneas con instrucciones sean almacenadas en memoria. Si un archivo tiene 200 líneas pero 50 de ellas están vacías, el simulador solo ocupará 150 posiciones de memoria.
+Descartar las líneas vacías antes de guardar el programa evita reservar espacio innecesario en el Disco y en la RAM, garantizando que cada celda de memoria contenga únicamente instrucciones válidas y procesables.
 
 ---
 
 # Manejo de Overflow
 
-El sistema busca representar el comportamiento de un procesador que trabaja con una cantidad limitada de bits. Además, no hay especificación en el enunciado sobre este comportamiento.
+El simulador representa el comportamiento de una arquitectura basada en un rango limitado de bits.
 
-Por esta razón, no se implementa una validación de software que impida automáticamente una operación cuando el resultado supera el rango representable.
-
-Cuando una operación produce un valor fuera del rango disponible para 8 bits, el resultado se comporta de acuerdo con las limitaciones de la representación utilizada por el hardware simulado.
-
-Esto permite observar de forma más realista el comportamiento asociado al desbordamiento.
+Por esta razón, el sistema no bloquea por software una operación cuando el resultado sobrepasa el límite permitido, sino que permite que el valor se comporte según las limitaciones del desbordamiento físico. Esto permite observar cómo afecta el *overflow* a los registros durante las operaciones aritméticas.
 
 ---
 
@@ -434,113 +479,55 @@ Esto permite observar de forma más realista el comportamiento asociado al desbo
 
 ## Interfaz gráfica
 
-Se utilizó **Swing** como base para la interfaz gráfica y tras una investigación de librerías para interfaz moderna y agradable para el usuario, se decidió utilizar **FlatLaf** para proporcionar una apariencia visual más moderna.
+Se utilizó **Swing** junto a la librería **FlatLaf** con un tema oscuro moderno. La interfaz fue estructurada en paneles separados para observar simultáneamente la RAM, el Disco, la Memoria Virtual, los registros de la CPU, la lista de procesos y los logs del sistema, facilitando la comprensión del flujo sin depender de una consola.
 
-La interfaz fue diseñada para que los componentes internos del simulador puedan observarse directamente, evitando que el usuario tenga que interactuar únicamente mediante una consola.
+## Planificación FCFS y Lista de Trabajos
 
-El tema oscuro también permite separar visualmente las diferentes secciones de la aplicación y facilita la lectura de las tablas y registros.
+Se implementó una `JobList` previa a la carga en memoria para modelar adecuadamente la admisión de procesos. El `Scheduler` procesa los trabajos en estricto orden de llegada (FCFS), lo que permite simular escenarios reales de contención de memoria cuando múltiples programas compiten por el espacio disponible. Mientras un proceso está `BLOCKED` no se ingresa ningún otro proceso debido a lo indicado por el profesor en clase.
+
+## Memoria Virtual y Swapping
+
+Para manejar el exceso de procesos sin rechazarlos inmediatamente, se asignó una sección dedicada del Disco como Memoria Virtual. Esto permitió implementar el estado `READY_SUSPENDED` y el mecanismo de swap simple, donde el Kernel traslada automáticamente el código desde el disco a la RAM cuando un proceso saliente libera espacio.
+
+## Sistema de Archivos simulado
+
+Se diseñó la clase `FileSystem` respaldada por `FileIndex` para simular la gestión de archivos en Disco. A través de la interrupción `INT 21H`, los programas en ensamblador pueden crear y manipular archivos dentro del propio entorno del simulador, conectando los conceptos de I/O con la tabla de metadatos del disco. Se asume, por lo que se habló en clases, que los archivos solo tienen números dentro de los límites definidos, y que no se contemplarán errores de flujo, por ejemplo, la apetura de archivos inexistentes.
 
 ## Separación de responsabilidades
 
-La aplicación se divide en diferentes capas y componentes con responsabilidades específicas, utilizando la arquitectura MVC (Modelo-Vista-Controlador).
-
-El modelo representa los elementos de la Mini PC, los servicios procesan los archivos y operaciones auxiliares, el controlador coordina el funcionamiento del sistema y la vista se encarga de la interacción con el usuario.
-
-Esta separación facilita el mantenimiento del proyecto y permite modificar un componente sin tener que concentrar toda la lógica en una única clase.
-
-## Uso de Loader
-
-Se implementó un `Loader` para representar de forma más cercana el proceso mediante el cual un programa es trasladado desde un archivo externo hacia la memoria.
-
-En lugar de realizar toda la carga directamente desde el controlador, el Loader concentra esta responsabilidad y se encarga de escribir las instrucciones en las posiciones correspondientes de la RAM.
-
-## Uso de un Dispatcher
-
-Se implementó un `Dispatcher` para representar la administración del proceso y sus transiciones de estado.
-
-Aunque el simulador trabaja con un modelo simplificado y no busca reproducir todas las funciones de un sistema operativo real, este componente permite mantener una estructura más cercana a los conceptos estudiados en sistemas operativos.
-
-## Almacenamiento del PCB en memoria
-
-Los atributos principales del PCB se representan directamente en la memoria simulada.
-
-Esta decisión se tomó para que la información pueda observarse celda por celda desde la interfaz, permitiendo relacionar los conceptos teóricos del PCB con una representación concreta dentro de la memoria, según lo solicitado para esta tarea.
-
-## Visualización del CPU
-
-La interfaz incluye una representación visual de los registros y elementos principales del CPU.
-
-La estructura utilizada se mantiene relacionada con la información del PCB para facilitar la visualización del estado actual del proceso y del procesador durante la ejecución.
-
-## Configuración de memoria
-
-El tamaño de la RAM y el espacio reservado para el Kernel pueden configurarse desde la interfaz, siempre y cuando no haya ningún proceso cargado.
-
-En cualquier momento se puede limpiar el proceso actual y de esta manera se puede volver a configurar la memoria para luego cargar otro programa.
-
-El tamaño mínimo del Kernel se estableció en **16 celdas**, aunque un proceso pueda requerir menos espacio, con el objetivo de mantener un margen suficiente para las estructuras posteriores.
-
-Como configuración predeterminada se utilizan:
-
-```text
-Kernel: 64 celdas
-RAM:    256 celdas
-```
-
-## Manejo de memoria insuficiente
-
-El simulador verifica si existe suficiente espacio disponible antes de cargar un programa.
-
-Si el programa excede la cantidad de celdas disponibles para el usuario, la carga no se realiza y se informa al usuario que la memoria disponible es insuficiente.
-
-Esto permite representar una situación básica de administración de memoria y evita que las instrucciones sean colocadas fuera del espacio asignado.
-
-## Configuración global
-
-Se implementó `SystemConfig` para centralizar los parámetros generales de la Mini PC.
-
-Esto evita distribuir valores de configuración por diferentes clases y permite que componentes como el controlador, la memoria y la interfaz trabajen con los mismos parámetros.
+El proyecto sigue el patrón MVC (Modelo-Vista-Controlador). El modelo administra el hardware y las estructuras del SO (`CPU`, `MainMemory`, `Disk`, `PCB`, `Scheduler`), los servicios procesan los archivos externos (`AsmParser`, `FileManager`), el controlador coordina las interacciones del Kernel y la vista muestra visualmente todos los cambios en tiempo real.
 
 ---
 
 # Consideraciones y limitaciones
 
-El simulador representa una computadora simplificada con fines académicos. Por lo tanto, algunos comportamientos de un sistema operativo o procesador real son abstraídos para mantener el modelo manejable.
+El simulador está diseñado con fines estrictamente académicos, por lo que abstrae ciertas características de un sistema real:
 
-Entre las principales consideraciones se encuentran:
-
-* La arquitectura utiliza valores numéricos de 8 bits.
-* El sistema administra un proceso mediante un modelo simplificado.
-* El Kernel no representa un sistema operativo completo.
-* La memoria RAM es una estructura simulada y no corresponde directamente a la RAM física del equipo.
-* Las instrucciones disponibles dependen del conjunto de instrucciones definido por el proyecto.
-* El Dispatcher representa de manera simplificada la administración del proceso.
-* El comportamiento de overflow se encuentra limitado por la representación de 8 bits.
-* La interfaz gráfica está orientada principalmente a la observación y demostración del funcionamiento interno del simulador.
+* La arquitectura trabaja con valores y registros con rangos numéricos limitados.
+* La planificación de procesos está centrada en la política FCFS sin desalojo, sin prioridades.
+* El sistema de archivos es de estructura plana (no soporta jerarquía de carpetas/directorios).
+* La Memoria Virtual funciona solo cuando no se puede ingresar un programa por falta de memoria de usuario pero sí cabe su PCB, y no por paginación u otras estrategias.
+* Las interrupciones son simuladas mediante software y atendidas secuencialmente por el Kernel.
 
 ---
 
 # Tecnologías utilizadas
 
-* **Java**
+* **Java (JDK 11+)**
 * **Java Swing**
 * **FlatLaf 3.7.2**
-* **Apache NetBeans**
+* **Apache NetBeans / IDE Java**
 * **Git / GitHub**
 
-La aplicación no requiere conexión a Internet para ejecutar el simulador una vez que el proyecto y sus dependencias se encuentran disponibles localmente.
+La aplicación se ejecuta de manera local y no requiere dependencias ni servicios externos adicionales.
 
 ---
 
 # Conclusión
 
-Mini PC Simulator integra diferentes conceptos de arquitectura de sistemas operativos dentro de una aplicación interactiva.
+Esta versión extendida de Mini PC Simulator ofrece una visión integral sobre el funcionamiento de un sistema operativo. Integra la gestión de almacenamiento secundario en disco, la memoria virtual con swapping, la planificación de trabajos bajo FCFS, la atención de interrupciones de I/O y la interacción con un sistema de archivos simple.
 
-El proyecto permite seguir el recorrido de un programa desde su archivo fuente `.asm`, pasando por la validación y carga en memoria, hasta su ejecución mediante el ciclo de búsqueda y ejecución del CPU.
-
-La visualización de la memoria, los registros, el PCB y el estado del proceso permite utilizar el simulador como una herramienta de apoyo para comprender conceptos que normalmente se estudian de forma teórica.
-
-Además, la separación entre modelo, servicios, controlador y vista permite mantener una estructura organizada y facilita la incorporación de nuevas funcionalidades en futuras versiones.
+La posibilidad de observar en tiempo real cómo los procesos pasan de la memoria virtual a la RAM, cómo se guardan los BCP en el área del Kernel y cómo se registran las estadísticas de ejecución convierte a este simulador en una herramienta práctica y clara para comprender los conceptos del curso de Principios de Sistemas Operativos.
 
 ---
 
