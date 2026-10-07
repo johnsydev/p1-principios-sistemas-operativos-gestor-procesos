@@ -43,4 +43,12 @@ public class JobList {
         }
         return tableData;
     }
+
+    public ArrayList<String> getAllJobNames() {
+        ArrayList<String> jobNames = new ArrayList<>();
+        for (Job job : pendingJobs) {
+            jobNames.add(job.getNameFile());
+        }
+        return jobNames;
+    }
 }

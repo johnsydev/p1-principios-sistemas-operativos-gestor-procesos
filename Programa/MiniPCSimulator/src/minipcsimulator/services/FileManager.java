@@ -18,15 +18,15 @@ public class FileManager {
      * Carga un archivo .asm y devuelve sus líneas como un ArrayList de Strings.
      * @return Un ArrayList de Strings con las líneas del archivo .asm.
      */
-    public static List<Map.Entry<ArrayList<String>, ArrayList<String>>> loadFiles() {
-        return openFileExplorer();
+    public static List<Map.Entry<ArrayList<String>, ArrayList<String>>> loadFiles(ArrayList<String> existingJobNames) {
+        return openFileExplorer(existingJobNames);
     }
 
     /**
      * Abre el explorador de archivos y devuelve las líneas del archivo seleccionado como un ArrayList de Strings.
      * @return Un ArrayList de Strings con las líneas del archivo seleccionado.
      */
-    private static List<Map.Entry<ArrayList<String>, ArrayList<String>>> openFileExplorer() {
+    private static List<Map.Entry<ArrayList<String>, ArrayList<String>>> openFileExplorer(ArrayList<String> existingJobNames) {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setMultiSelectionEnabled(true);
         fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos Ensamblador (*.asm)", "asm"));
@@ -46,6 +46,10 @@ public class FileManager {
             for (java.io.File file : files) {
                 if (!isValidExtension(file.getAbsolutePath())) {
                     throw new RuntimeException("El archivo " + file.getName() + " no tiene la extensión .asm.");
+                }
+
+                if (existingJobNames.contains(file.getName())) {
+                    throw new RuntimeException("El archivo " + file.getName() + " ya ha sido cargado previamente.");
                 }
                 
                 ArrayList<String> fileData = new ArrayList<>();

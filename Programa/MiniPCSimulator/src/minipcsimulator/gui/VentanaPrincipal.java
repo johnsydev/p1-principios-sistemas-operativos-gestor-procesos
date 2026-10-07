@@ -191,10 +191,37 @@ public class VentanaPrincipal extends JFrame {
         panelModal.setBackground(BG_PANEL);
         panelModal.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        spTamanoMemoria = new JSpinner(new SpinnerNumberModel(SystemConfig.getMemorySize(), SystemConfig.MEMORY_SIZE_MIN, SystemConfig.MEMORY_SIZE_MAX, 16));
-        spLimiteKernel = new JSpinner(new SpinnerNumberModel(SystemConfig.getUserMemoryStart(), SystemConfig.USER_MEMORY_START_MIN, SystemConfig.MEMORY_SIZE_MAX - 16, 8));
-        spTamanoDisco = new JSpinner(new SpinnerNumberModel(512, 128, 2048, 32));
-        spTamanoVirtual = new JSpinner(new SpinnerNumberModel(64, 16, 256, 16));
+        spTamanoMemoria = new JSpinner(new SpinnerNumberModel(
+            SystemConfig.getMemorySize(),
+            SystemConfig.MEMORY_SIZE_MIN,
+            SystemConfig.MEMORY_SIZE_MAX,
+            16
+        ));
+
+        spLimiteKernel = new JSpinner(new SpinnerNumberModel(
+            SystemConfig.getUserMemoryStart(),
+            SystemConfig.getMinKernelSize(),
+            SystemConfig.getMaxKernelSize(),
+            8
+        ));
+
+        spTamanoDisco = new JSpinner(new SpinnerNumberModel(
+            SystemConfig.getDiskSize(),
+            SystemConfig.DISK_SIZE_MIN,
+            SystemConfig.DISK_SIZE_MAX,
+            32
+        ));
+
+        spTamanoVirtual = new JSpinner(new SpinnerNumberModel(
+            SystemConfig.getDiskMemoryVirtualSize(),
+            SystemConfig.getMinVirtualSize(),
+            SystemConfig.getMaxVirtualSize(),
+            16
+        ));
+
+        spTamanoMemoria.addChangeListener(e -> actualizarLimitesKernel());
+
+        spTamanoDisco.addChangeListener(e -> actualizarLimitesMemoriaVirtual());
 
         estilitarSpinner(spTamanoMemoria);
         estilitarSpinner(spLimiteKernel);
@@ -247,6 +274,60 @@ public class VentanaPrincipal extends JFrame {
         panelModal.add(panelBotones, BorderLayout.SOUTH);
 
         dialogConfig.setContentPane(panelModal);
+    }
+
+    private void actualizarLimitesKernel() {
+
+        int memorySize = (Integer) spTamanoMemoria.getValue();
+
+        int minKernel = (int) Math.ceil(
+            memorySize * SystemConfig.MIN_KERNEL_MEMORY_PERCENTAGE
+        );
+
+        int maxKernel = (int) Math.floor(
+            memorySize * SystemConfig.MAX_KERNEL_MEMORY_PERCENTAGE
+        );
+
+        SpinnerNumberModel model =
+            (SpinnerNumberModel) spLimiteKernel.getModel();
+
+        model.setMinimum(minKernel);
+        model.setMaximum(maxKernel);
+
+        int kernelActual = (Integer) spLimiteKernel.getValue();
+
+        if (kernelActual < minKernel) {
+            spLimiteKernel.setValue(minKernel);
+        } else if (kernelActual > maxKernel) {
+            spLimiteKernel.setValue(maxKernel);
+        }
+    }
+
+    private void actualizarLimitesMemoriaVirtual() {
+
+        int diskSize = (Integer) spTamanoDisco.getValue();
+
+        int minVirtual = (int) Math.ceil(
+            diskSize * SystemConfig.MIN_VIRTUAL_MEMORY_PERCENTAGE
+        );
+
+        int maxVirtual = (int) Math.floor(
+            diskSize * SystemConfig.MAX_VIRTUAL_MEMORY_PERCENTAGE
+        );
+
+        SpinnerNumberModel model =
+            (SpinnerNumberModel) spTamanoVirtual.getModel();
+
+        model.setMinimum(minVirtual);
+        model.setMaximum(maxVirtual);
+
+        int virtualActual = (Integer) spTamanoVirtual.getValue();
+
+        if (virtualActual < minVirtual) {
+            spTamanoVirtual.setValue(minVirtual);
+        } else if (virtualActual > maxVirtual) {
+            spTamanoVirtual.setValue(maxVirtual);
+        }
     }
 
     /**

@@ -64,7 +64,7 @@ public class PCB {
         this.ownerProcess = ownerProcess;
         this.PID = ownerProcess.getPID();                            
         this.startPosition = startPosition;         // 4 es el tamaño fijo de PCB + cantidad de registros
-        this.memoryPositionPCB = pcbStartAddress; //(SystemConfig.PCB_MEMORY_START + (this.PID-SystemConfig.FIRST_PROCESS_ID)) * (SystemConfig.PCB_SIZE);
+        this.memoryPositionPCB = pcbStartAddress; //(SystemConfig.getPcbMemoryStart() + (this.PID-SystemConfig.FIRST_PROCESS_ID)) * (SystemConfig.PCB_SIZE);
         this.state = ProcessState.NEW;
         this.PC = startPosition;
         stack = new Stack();

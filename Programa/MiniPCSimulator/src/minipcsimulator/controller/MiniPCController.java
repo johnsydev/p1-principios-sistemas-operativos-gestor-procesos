@@ -305,12 +305,19 @@ public class MiniPCController {
      * Genera la tabla de instrucciones en la GUI
      */
     private void seleccionarArchivos() {
-        if (this.cpu.getPCB() != null) {
+        if (this.processList.hasProcesses()) {
             vista.mostrarError("Ya hay un programa cargado. Debe finalizarlo y limpiar el sistema antes de cargar otro.");
             return;
         }
 
-        List<Map.Entry<ArrayList<String>, ArrayList<String>>> filesData = FileManager.loadFiles();
+
+        List<Map.Entry<ArrayList<String>, ArrayList<String>>> filesData;
+        try {
+            filesData = FileManager.loadFiles(this.jobList.getAllJobNames());
+        } catch (Exception exc) {
+            vista.mostrarError(exc.getMessage());
+            return;
+        }
 
         for (Map.Entry<ArrayList<String>, ArrayList<String>> fileData : filesData) {
             procesarArchivo(fileData);
@@ -620,9 +627,36 @@ public class MiniPCController {
         int diskSize = vista.getTamanoDiscoSeleccionado();
         int virtualSize = vista.getTamanoVirtualSeleccionado();
 
-        if (memorySize <= 0 || kernelSize < 0 || kernelSize >= memorySize || kernelSize < SystemConfig.USER_MEMORY_START_MIN 
-            || memorySize > SystemConfig.MEMORY_SIZE_MAX || memorySize < SystemConfig.MEMORY_SIZE_MIN || kernelSize > SystemConfig.MEMORY_SIZE_MAX-16) {
-            vista.mostrarError("Rango de memoria inválido. Asegúrese de que el inicio sea menor que el fin y ambos estén dentro del rango permitido.");
+        // Calcular límites usando la nueva configuración
+        int minKernelSize = (int) Math.ceil(
+            memorySize * SystemConfig.MIN_KERNEL_MEMORY_PERCENTAGE
+        );
+
+        int maxKernelSize = (int) Math.floor(
+            memorySize * SystemConfig.MAX_KERNEL_MEMORY_PERCENTAGE
+        );
+
+        int minVirtualSize = (int) Math.ceil(
+            diskSize * SystemConfig.MIN_VIRTUAL_MEMORY_PERCENTAGE
+        );
+
+        int maxVirtualSize = (int) Math.floor(
+            diskSize * SystemConfig.MAX_VIRTUAL_MEMORY_PERCENTAGE
+        );
+
+        if (memorySize < SystemConfig.MEMORY_SIZE_MIN
+                || memorySize > SystemConfig.MEMORY_SIZE_MAX
+                || kernelSize < minKernelSize
+                || kernelSize > maxKernelSize
+                || kernelSize >= memorySize
+                || diskSize < SystemConfig.DISK_SIZE_MIN
+                || diskSize > SystemConfig.DISK_SIZE_MAX
+                || virtualSize < minVirtualSize
+                || virtualSize > maxVirtualSize) {
+
+            vista.mostrarError(
+                "Rango de configuración inválido."
+            );
             return;
         }
 

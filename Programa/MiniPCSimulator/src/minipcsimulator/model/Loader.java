@@ -240,7 +240,7 @@ public class Loader {
      * @throws Exception Si la memoria está llena o no hay un bloque contiguo del tamaño requerido.
      */
     public static int getFreeSpaceInMemoryForPCB(MainMemory memory) throws Exception {
-        int startAddress = SystemConfig.PCB_MEMORY_START;
+        int startAddress = SystemConfig.getPcbMemoryStart();
         int totalKernelSize = SystemConfig.getUserMemoryStart();
 
         int size = SystemConfig.PCB_SIZE;
@@ -294,7 +294,7 @@ public class Loader {
 
     public static int getFreeSpaceForJobInfo(MainMemory memory) throws Exception {
         int startAddress = 0;
-        int totalSpaceForJobs = SystemConfig.PCB_MEMORY_START; //PENDIENTE
+        int totalSpaceForJobs = SystemConfig.getPcbMemoryStart(); //PENDIENTE
 
         int consecutiveFree = 0;
         for (int i = startAddress; i < totalSpaceForJobs; i++) {
