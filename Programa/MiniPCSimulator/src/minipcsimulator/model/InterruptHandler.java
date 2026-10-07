@@ -33,7 +33,15 @@ public class InterruptHandler {
         cpu.setPCB(null);
 
         // Verificar si hay trabajos pendientes para admitir
-        scheduler.checkAdmitJob();
+
+        boolean haySuspendidosPendientes = this.scheduler.hasPendingSuspendedProcesses();
+
+        if (!haySuspendidosPendientes) {
+            this.scheduler.checkAdmitJob(); // Admitir automáticamente el siguiente Job en espera si cabe en la RAM liberada
+        } else {
+            System.out.println("No se admiten nuevos Jobs porque hay procesos en READY_SUSPENDED esperando memoria RAM.");
+        } 
+
     }
 
     public void handleInterruptIO(CPU cpu, String ioType) {
@@ -110,5 +118,10 @@ public class InterruptHandler {
         bufferOutput = "";
         hasPendingOutput = false;
         return output;
+    }
+
+    public void sendToIInternalConsole(String output) {
+        this.bufferOutput = output + "\n";
+        this.hasPendingOutput = true;
     }
 }

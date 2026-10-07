@@ -86,6 +86,70 @@ public class Loader {
     }
 
     /**
+     * Carga las instrucciones del proceso en la memoria virtual del disco.
+     * La carga la realiza iniciando en la primera posición de memoria virtual definida en SystemConfig.
+     * Con esto, el proceso pasa a estado READY_SUSPENDED y puede ser ejecutado por el CPU cuando se cargue en memoria principal.
+     * @param process El proceso al que se le asignarán las instrucciones.
+     * @param disk El disco donde se encuentran las instrucciones.
+     */
+    public static void loadToVirtualMemory(Process process, Disk disk) {
+        int size = process.getPCB().getDiskProgramSize();
+        int startAddressDisk = process.getPCB().getDiskStartPosition();
+
+        ArrayList<Instruction> instructions = new ArrayList<>();
+        try {
+            int positionVirtual = getFreeSpaceInVirtualMemory(size, disk);
+
+            for (int i = positionVirtual; i < positionVirtual + size; i++) {
+                Instruction instruction = disk.getInstruction(startAddressDisk);
+                disk.setPositionInstruction(i, instruction);
+
+                instructions.add(instruction);
+                startAddressDisk++;
+            }
+
+            // Guarda la posición de inicio de la Memoria Virtual en el PCB
+            process.getPCB().setStartPosition(positionVirtual);
+            process.getPCB().setPC(positionVirtual);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error al cargar el programa en memoria virtual: " + e.getMessage());
+        }
+        process.setInstructions(instructions);
+    }
+
+    public static void loadFromVirtualToMemory(Process process, MainMemory memory, Disk disk) {
+        int size = process.getPCB().getDiskProgramSize();
+        int startVirtualAddress = process.getPCB().getStartPosition(); // Inicio en memoria virtual
+
+        ArrayList<Instruction> instructions = new ArrayList<>();
+        try {
+            // nueva dirección de inicio libre en la RAM de Usuario
+            int newRamPosition = getFreeSpaceInMemory(size, memory);
+
+            // mueve instrucciones de memoria virtual a RAM y limpia memoria virtual
+            for (int i = 0; i < size; i++) {
+                int currentVirtualAddr = startVirtualAddress + i;
+                int currentRamAddr = newRamPosition + i;
+
+                Instruction instruction = disk.getInstruction(currentVirtualAddr);
+                memory.setPositionInstruction(currentRamAddr, instruction);
+                instructions.add(instruction);
+
+                disk.setPosition(currentVirtualAddr, null);
+            }
+
+            // actualiza PCB
+            process.getPCB().setStartPosition(newRamPosition);
+            process.getPCB().setPC(newRamPosition); // Seteamos el PC al inicio en RAM
+            process.setInstructions(instructions);   // Internamente ejecuta configEndPosition(size)
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error al cargar el programa desde memoria virtual a memoria principal: " + e.getMessage());
+        }
+    }
+
+    /**
      * Busca un bloque continuo de celdas libres en el Disco a partir de la
      * dirección reservada para programas de usuario.
      * 
@@ -245,5 +309,36 @@ public class Loader {
         
         // Si después de recorrer todo el disco no se encontró un bloque contiguo suficiente
         throw new Exception("No hay espacio libre en el Disco para trabajos.");
+    }
+
+    public static int getFreeSpaceInVirtualMemory(int size, Disk disk) throws Exception {
+        int startAddress = SystemConfig.getDiskMemoryVirtualStart();
+        int totalVirtualMemorySize = SystemConfig.getDiskSize();
+
+        int consecutiveFree = 0;
+        int startIndex = -1;
+
+        for (int i = startAddress; i < totalVirtualMemorySize; i++) {
+            // verifica si la celda actual en la memoria virtual está libre
+            if (disk.getPosition(i) == null) {
+                if (consecutiveFree == 0) {
+                    startIndex = i; // marca el inicio si no había uno
+                }
+                consecutiveFree++;
+
+                // si se encuentra bloque continuo con la cantidad de celdas necesarias
+                if (consecutiveFree == size) {
+                    return startIndex;
+                }
+            } else {
+                // si se rompe la continuidad, reiniciamos el conteo
+                consecutiveFree = 0;
+                startIndex = -1;
+            }
+        }
+
+        // Si después de recorrer toda la memoria virtual no se encontró un bloque contiguo suficiente
+        throw new Exception("No hay espacio libre contiguo suficiente en la Memoria Virtual. " +
+                            "Se requerían " + size + " celdas libres.");
     }
 }

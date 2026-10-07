@@ -665,6 +665,7 @@ public class CPU {
             this.PC = newPC;
         } else {
             System.out.println("Error: Dirección de salto fuera del rango del proceso (Segmentation Fault).");
+            interruptHandler.sendToIInternalConsole("Error: Dirección de salto fuera del rango del proceso (Segmentation Fault).");
             pcb.setState(Process.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
         }
     }

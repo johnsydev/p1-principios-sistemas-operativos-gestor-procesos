@@ -56,4 +56,10 @@ public class Job {
     public String getNameFile() {
         return nameFile;
     }
+
+    public static void revertPID() {
+        if (nextPID > SystemConfig.FIRST_PROCESS_ID) {
+            nextPID--;
+        }
+    }
 }

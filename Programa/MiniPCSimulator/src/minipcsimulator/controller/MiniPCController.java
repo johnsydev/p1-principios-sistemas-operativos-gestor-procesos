@@ -265,7 +265,13 @@ public class MiniPCController {
         // Aquí se hace el trabajo y las instrucciones se cargan, sin RAM aún
 
         FileIndex fileIndex = new FileIndex(fileName, -1, asmArray.size());
-        int startAddress = Loader.loadProgram(lines, asmArray, this.disk, fileIndex); // sin ponerlo en tabla
+        int startAddress = -1;
+        try {
+            startAddress = Loader.loadProgram(lines, asmArray, this.disk, fileIndex); // sin ponerlo en tabla
+        } catch (Exception e) {
+            vista.mostrarError("El programa " + fileName + " no se puede cargar al sistema. " + e.getMessage());
+            return;
+        }
 
         Job job = new Job(filePath, fileName, lines, asmArray);
         job.setDiskStartAddress(startAddress);
@@ -273,7 +279,8 @@ public class MiniPCController {
         try {
             jobAddressRAM = Loader.getFreeSpaceForJobInfo(this.memory);
         } catch (Exception e) {
-            vista.mostrarError(e.getMessage());
+            Job.revertPID();
+            vista.mostrarError("El programa " + fileName + " no se puede cargar al sistema. No hay espacio suficiente en la RAM para almacenar los datos del Job.");
             return;
         }
 
@@ -287,9 +294,9 @@ public class MiniPCController {
         vista.deshabilitarConfiguraciones();
         ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
         vista.actualizarTablaDisco(diskLists.get(0));
+        vista.actualizarTablaMemoriaVirtual(diskLists.get(1));
         List<Object[]> memoryRows = this.memory.getAllMemoryRows();
         vista.actualizarTablaMemoria(memoryRows, -1);
-        vista.actualizarTablaMemoriaVirtual(diskLists.get(1));
     }
 
     /**
@@ -340,6 +347,10 @@ public class MiniPCController {
 
         List<Object[]> memoryRows = this.memory.getAllMemoryRows();
         vista.actualizarTablaMemoria(memoryRows, -1);
+
+        ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
+        vista.actualizarTablaDisco(diskLists.get(0));
+        vista.actualizarTablaMemoriaVirtual(diskLists.get(1));
     }
 
     /**
@@ -452,15 +463,22 @@ public class MiniPCController {
         
         if (this.cpu.getPCB() == null || this.cpu.getPCB().getState() == ProcessState.EXIT) {
 
-            //this.processList.removeProcess(currentProcess.getPCB().getPID());
+            boolean haySuspendidosPendientes = this.scheduler.hasPendingSuspendedProcesses();
 
-            // Admitir automáticamente el siguiente Job en espera si cabe en la RAM liberada
-            this.scheduler.checkAdmitJob();
+            if (!haySuspendidosPendientes) {
+                this.scheduler.checkAdmitJob(); // Admitir automáticamente el siguiente Job en espera si cabe en la RAM liberada
+            } else {
+                System.out.println("No se admiten nuevos Jobs porque hay procesos en READY_SUSPENDED esperando memoria RAM.");
+            } 
+
             actualizarVistaListaProcesos();
 
             // Actualizar vistas
+            ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
+            actualizarVistaListaProcesos();
             vista.actualizarTablaMemoria(this.memory.getAllMemoryRows(), -1);
-            vista.actualizarTablaDisco(this.disk.getAllDiskRows().get(0));
+            vista.actualizarTablaDisco(diskLists.get(0));
+            vista.actualizarTablaMemoriaVirtual(diskLists.get(1));
             actualizarVistaCPU();
 
             validarParaEjecutar();

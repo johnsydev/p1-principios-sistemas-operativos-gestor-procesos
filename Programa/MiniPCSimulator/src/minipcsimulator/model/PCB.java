@@ -1,7 +1,7 @@
 package minipcsimulator.model;
 
-import java.util.Stack;
 import java.util.ArrayList;
+import java.util.Stack;
 import minipcsimulator.model.Process.ProcessState;
 
 /**
@@ -77,6 +77,10 @@ public class PCB {
     public void configEndPosition(int instructionsCount) {
         this.sizeProcessScope = instructionsCount;
         this.endPosition = startPosition + instructionsCount;
+    }
+
+    public void setStartPosition(int startPosition) {
+        this.startPosition = startPosition;
     }
 
     public void setDiskStartPosition(int diskStartPosition) {

@@ -29,9 +29,11 @@ public class ProcessList {
         PCB pcb = process.getPCB(); 
         int memoryPosition = pcb.getMemoryPositionPCB(); 
 
+        Process.ProcessState state = pcb.getState();
+
         // Escribir BCP Inicial en la RAM 
         memory.setPosition(memoryPosition, new MemoryRegister("bcp_pid = " + pcb.getPID(), pcb.getPID()));
-        memory.setPosition(memoryPosition + 1, new MemoryRegister("bcp_state = READY", Process.ProcessState.READY.ordinal()));
+        memory.setPosition(memoryPosition + 1, new MemoryRegister("bcp_state = " + state.toString(), state.ordinal()));
         memory.setPosition(memoryPosition + 2, new MemoryRegister("bcp_pc = " + pcb.getStartPosition(), pcb.getStartPosition()));
         memory.setPosition(memoryPosition + 3, new MemoryRegister("bcp_ac = 0", 0));
         memory.setPosition(memoryPosition + 4, new MemoryRegister("bcp_ax = 0", 0));
@@ -129,5 +131,9 @@ public class ProcessList {
 
     public List<Process> getDeletedProcesses() {
         return deletedProcesses;
+    }
+
+    public List<Process> getProcesses() {
+        return processList;
     }
 }
