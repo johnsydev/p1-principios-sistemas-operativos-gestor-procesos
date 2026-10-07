@@ -381,6 +381,30 @@ public class MiniPCController {
         return filasKernel;
     }
 
+    public void terminateCurrentProcess(String motivo) {
+        Process currentProcess = processList.getFirstProcess();
+        if (currentProcess == null) return;
+
+        System.out.println("Proceso " + currentProcess.getPCB().getPID() + " terminado. Motivo: " + motivo);
+
+        // 1. Cambiar estado
+        currentProcess.getPCB().setState(Process.ProcessState.EXIT);
+
+        // 2. Limpiar estructuras (CPU, Memoria, Listas)
+        cpu.setPCB(null);
+        vista.getTxtPantalla().append("[PID " + currentProcess.getPCB().getPID() + "]: " + "Proceso terminado con error." + "\n");
+        processList.removeProcess(currentProcess.getPCB().getPID());
+        // memoria.liberarEspacio(currentProcess...);
+
+        boolean haySuspendidosPendientes = this.scheduler.hasPendingSuspendedProcesses();
+
+        if (!haySuspendidosPendientes) {
+            this.scheduler.checkAdmitJob(); // Admitir automáticamente el siguiente Job en espera si cabe en la RAM liberada
+        } else {
+            System.out.println("No se admiten nuevos Jobs porque hay procesos en READY_SUSPENDED esperando memoria RAM.");
+        } 
+    }
+
     /**
      * Esto valida que el proceso esté en un estado válido para ejecutar (READY o RUNNING).
      * Si el proceso está en estado EXIT, NEW o BLOCKED, se muestra un mensaje de error y no se permite la ejecución.
@@ -394,7 +418,7 @@ public class MiniPCController {
             return false;
         }
         if (this.cpu.getPCB() != null) {
-            if (this.cpu.getPCB().getState() == ProcessState.EXIT) {
+            if (this.cpu.getPCB().getState() == ProcessState.EXIT && !this.processList.hasProcesses()) {
                 vista.setEstadoBCP("EXIT");
                 vista.mostrarError("El proceso ya ha terminado. Seleccione un nuevo archivo .asm para cargar otro programa.");
                 return false;
@@ -443,7 +467,21 @@ public class MiniPCController {
         }
 
         // Ejecutar la instrucción actual
-        this.cpu.executeInstruction();
+        try {
+            this.cpu.executeInstruction();
+        } catch (RuntimeException e) {
+            // Manejar la excepción y terminar el proceso
+            System.out.println("Excepción durante la ejecución: " + e.getMessage());
+            vista.getTxtPantalla().append("[PID " + currentProcess.getPCB().getPID() + "]: " + e.getMessage() + "\n");
+            terminateCurrentProcess(e.getMessage());
+            actualizarVistaListaProcesos();
+            actualizarVistaCPU();
+            ArrayList<List<Object[]>> diskLists = this.disk.getAllDiskRows();
+            vista.actualizarTablaMemoria(this.memory.getAllMemoryRows(), -1);
+            vista.actualizarTablaDisco(diskLists.get(0));
+            vista.actualizarTablaMemoriaVirtual(diskLists.get(1));
+            return;
+        }
 
         // Input
         if (currentProcess.getState() == ProcessState.BLOCKED && this.interruptHandler.hasPendingInput()) {

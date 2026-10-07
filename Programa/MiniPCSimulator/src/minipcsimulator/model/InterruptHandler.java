@@ -30,6 +30,8 @@ public class InterruptHandler {
         // Eliminar el proceso de la lista de procesos
         processList.removeProcess(currentProcess.getPCB().getPID());
 
+        sendToIInternalConsole("[PID " + currentProcess.getPCB().getPID() + "]: " + "Proceso terminado con éxito." + "\n");
+
         cpu.setPCB(null);
 
         // Verificar si hay trabajos pendientes para admitir

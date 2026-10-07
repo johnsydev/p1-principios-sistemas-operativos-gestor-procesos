@@ -664,9 +664,8 @@ public class CPU {
         if (newPC >= pcb.getStartPosition() && newPC < pcb.getEndPosition()) {
             this.PC = newPC;
         } else {
-            System.out.println("Error: Dirección de salto fuera del rango del proceso (Segmentation Fault).");
-            interruptHandler.sendToIInternalConsole("Error: Dirección de salto fuera del rango del proceso (Segmentation Fault).");
             pcb.setState(Process.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
+            throw new RuntimeException("Error: Dirección de salto fuera del rango del proceso (Segmentation Fault).");
         }
     }
 
@@ -715,9 +714,9 @@ public class CPU {
     public void executePARAM(ArrayList<Integer> params) {
         for (Integer param : params) {
             if (stack.size() >= SystemConfig.STACK_SIZE) {
-                System.out.println("Error: Stack Overflow. No se puede hacer PARAM, la pila está llena.");
                 pcb.setState(Process.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
-                return;
+                throw new RuntimeException("Error: Stack Overflow. No se puede hacer PARAM, la pila está llena.");
+                //return;
             }
             stack.push(param);
         }
@@ -731,9 +730,9 @@ public class CPU {
     public void executePUSH(OpCode register) {
         int value = getRegisterValue(register);
         if (stack.size() >= SystemConfig.STACK_SIZE) {
-            System.out.println("Error: Stack Overflow. No se puede hacer PUSH, la pila está llena.");
             pcb.setState(Process.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
-            return;
+            throw new RuntimeException("Error: Stack Overflow. No se puede hacer PUSH, la pila está llena.");
+            //return;
         }
         stack.push(value);
     }
@@ -745,9 +744,9 @@ public class CPU {
      */
     public void executePOP(OpCode register) {
         if (stack.isEmpty()) {
-            System.out.println("Error: Stack Underflow. No se puede hacer POP, la pila está vacía.");
             pcb.setState(Process.ProcessState.EXIT); // PENDIENTE SEGMENTATION FAULT
-            return;
+            throw new RuntimeException("Error: Stack Underflow. No se puede hacer POP, la pila está vacía.");
+            //return;
         }
         int value = stack.pop();
         setRegisterValue(register, value);
