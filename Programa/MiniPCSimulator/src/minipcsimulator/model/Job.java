@@ -62,4 +62,8 @@ public class Job {
             nextPID--;
         }
     }
+
+    public static void resetPIDs() {
+        nextPID = SystemConfig.FIRST_PROCESS_ID;
+    }
 }

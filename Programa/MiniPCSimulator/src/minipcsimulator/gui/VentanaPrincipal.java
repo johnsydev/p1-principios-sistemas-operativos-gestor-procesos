@@ -142,7 +142,7 @@ public class VentanaPrincipal extends JFrame {
         panelPrincipal.add(Box.createVerticalStrut(14));
 
         btnSeleccionar = crearBoton("Seleccionar .asm", BLUE);
-        btnCargar = crearBoton("Cargar programa", ORANGE);
+        btnCargar = crearBoton("Cargar programas", ORANGE);
         btnPasoAPaso = crearBoton("Paso a paso", CYAN);
         btnEjecutar = crearBoton("Ejecutar todo", GREEN);
         btnLimpiar = crearBoton("Limpiar sistema", RED);
@@ -581,7 +581,7 @@ public class VentanaPrincipal extends JFrame {
         panelPrincipal.add(cardIR);
         panelPrincipal.add(Box.createVerticalStrut(14));
 
-        JLabel tituloTrabajos = crearTituloCentrado("LISTA DE TRABAJOS");
+        JLabel tituloTrabajos = crearTituloCentrado("LISTA DE TRABAJOS Y PROCESOS");
         panelPrincipal.add(tituloTrabajos);
         panelPrincipal.add(Box.createVerticalStrut(8));
 

@@ -186,12 +186,19 @@ public class MiniPCController {
                     try {
                         int valor = Integer.parseInt(textoIngresado);
                         int ticks = LocalDateTime.now().getSecond() - startTimeInput.getSecond();
-                        interruptHandler.handleInterruptIOInput(procesoBloqueado, valor);
                         procesoBloqueado.getPCB().setTimeSpent(procesoBloqueado.getPCB().getTimeSpent() + ticks);
                         vista.getTxtPantalla().append("> " + valor + "\n");
 
                         vista.getTxtTeclado().setEnabled(false);
                         startTimeInput = null;
+                        try {
+                            interruptHandler.handleInterruptIOInput(procesoBloqueado, valor);
+                        }
+                        catch (Exception ex) {
+                            vista.getTxtPantalla().append("[PID " + procesoBloqueado.getPCB().getPID() + "]: " + ex.getMessage() + "\n");
+                            terminateCurrentProcess(ex.getMessage());
+                        }
+                        
 
                     } catch (NumberFormatException ex) {
                         vista.mostrarError("Debe ingresar un número entero válido.");
@@ -711,7 +718,7 @@ public class MiniPCController {
 
         this.cpu = new CPU(this.memory, this.interruptHandler); // ponemos cpu nueva
 
-
+        Job.resetPIDs();
         vista.limpiarVista();
         vista.getDialogConfig().dispose();
         vista.habilitarConfiguraciones();
@@ -741,14 +748,22 @@ public class MiniPCController {
         List<Object[]> datosEstadisticas = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-        
+        int ticksAcumulados = 0;
+
         for (Process p : this.processList.getDeletedProcesses()) {
             PCB pcb = p.getPCB();
             String pid = "PID " + pcb.getPID();
-            LocalDateTime horaInicioDateT = this.startTimeSimulation.plusSeconds(pcb.getStartTime());
+
+            LocalDateTime horaInicioDateT = this.startTimeSimulation.plusSeconds(ticksAcumulados);
+            
+            int ticksProceso = pcb.getTimeSpent();
+            ticksAcumulados += ticksProceso;
+
+            LocalDateTime horaFinDateT = this.startTimeSimulation.plusSeconds(ticksAcumulados);
+
             String horaInicio = horaInicioDateT.format(formatter);
-            String horaFin = horaInicioDateT.plusSeconds(pcb.getTimeSpent()).format(formatter);
-            double duracionSegundos = pcb.getTimeSpent() * 1; // los ticks en segundos
+            String horaFin = horaFinDateT.format(formatter);
+            double duracionSegundos = (double) ticksProceso;
 
             datosEstadisticas.add(new Object[]{pid, horaInicio, horaFin, String.format("%.2f s", duracionSegundos)});
         }

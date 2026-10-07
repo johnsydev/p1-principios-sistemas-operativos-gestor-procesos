@@ -66,6 +66,10 @@ public class InterruptHandler {
     public void handleInterruptIOInput(Process blockedProcess, int value) {
         if (blockedProcess != null && blockedProcess.getPCB() != null) {
             this.hasPendingInput = false;
+            if (value < 0 || value > 255) {
+                blockedProcess.getPCB().setState(Process.ProcessState.EXIT);
+                throw new RuntimeException("Error: El valor de entrada debe estar entre 0 y 255.");
+            }
             blockedProcess.getPCB().setDX(String.valueOf(value));
             
             blockedProcess.getPCB().setState(Process.ProcessState.READY);

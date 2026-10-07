@@ -7,9 +7,13 @@
 ## Información del proyecto
 
 **Estudiante:** 2024178835 - Johnsy Steven López Aguilar  
+
 **Curso:** Principios de Sistemas Operativos  
+
 **Estado del proyecto:** 1 (Completo)
-**Enlace del video:** [Ver en YouTube](https://youtu.be/xyo6f_jqHMA)
+
+**Enlace del video:** [Ver en YouTube](https://youtu.be/PWzR9dX3KOQ)
+
 
 > [!IMPORTANT]
 > La estrategia de seguridad se encuentra [aquí](#estrategia-de-seguridad), el diagrama de paquetes se encuentra [aquí](#diagrama-de-paquetes) y la explicación del diseño del sistema se encuentra ampliamente explicada en este README.

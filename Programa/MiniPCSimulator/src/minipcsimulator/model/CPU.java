@@ -184,10 +184,8 @@ public class CPU {
             this.currentInstructionAddress = this.PC;
             this.PC++;
         } else {
-            // de momento el profe no puso instrucción de END, entonces se asume
-            // que si se sale del rango de memoria del proceso, es porque terminó
             pcb.setState(Process.ProcessState.EXIT);
-            System.out.println("Proceso " + pcb.getPID() + " ha terminado.");
+            throw new RuntimeException("Error: PC fuera del rango de memoria del proceso. (Segmentation Fault)");
         }
     }
 
